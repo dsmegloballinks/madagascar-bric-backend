@@ -6,12 +6,12 @@ const {
   getAll,
   update,
   deleteById,
-  convertFile
+  convertFile,
+  saveFileToDatabase
 } = require("./civil_register.controller");
 const Paths = require("../../helper/constants/Paths");
 
 const multer = require("multer");
-const { changeAddress } = require("./civil_register.service");
 /////
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {

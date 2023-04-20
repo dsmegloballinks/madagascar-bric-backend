@@ -7,7 +7,8 @@ const {
   getAll,
   update,
   deleteById,
-  readFiles
+  readFiles,
+  saveFileToDatabase
 } = require("./civil_register.service");
 const { hashSync, genSaltSync, compareSync, validationResult } = require("express-validator");
 const { sign } = require("express-validator");
@@ -111,18 +112,24 @@ module.exports = {
     if (!req.file) {
       return res.status(400).json({ message: 'Missing file parameter' });
     }
-
+  
     let filePath = req.file;
-
-    filePath = "D:/node/worldbank/"+filePath.path;
-    
-    readFiles(filePath)
-      .then(data => {
-        return res.status(200).json({ data });
-      })
-      .catch(err => {
-        console.error(err);
-        return res.status(500).json({ message: 'Error converting file' });
-      });
+    filePath = "D:/node/worldbank/" + filePath.path;
+  
+    try {
+      saveFileToDatabase(filePath)
+        .then(result => {
+          return res.status(200).json({ result });
+        })
+        .catch(err => {
+          console.error(err);
+          return res.status(500).json({ message: 'Error saving file to database' });
+        });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({message: 'Error saving file to database' });
+    }
   }
+  
+
 };
