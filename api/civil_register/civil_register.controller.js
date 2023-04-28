@@ -16,6 +16,9 @@ const { sign } = require("express-validator");
 const { ErrorCode, ActivityFlag, ResponseType } = require("../../helper/constants/Enums");
 const { Messages } = require("../../helper/constants/Messages");
 var common = require("../../helper/common.js");
+const Paths = require('../../helper/constants/Paths');
+const { dirname } = require('path');
+const appDir = dirname(require.main.filename);
 
 module.exports = {
   create: (req, res) => {
@@ -68,7 +71,7 @@ module.exports = {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });
-      } else if (results.results.length == 0) {
+      } else if (results.results.length === 0) {
         const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
         return res.json({ data });
       } else {
@@ -76,6 +79,7 @@ module.exports = {
         return res.json({ data });
       }
     });
+    
   },
   update: (req, res) => {
     const body = req.body;
@@ -112,24 +116,25 @@ module.exports = {
     if (!req.file) {
       return res.status(400).json({ message: 'Missing file parameter' });
     }
-  
-    let filePath = req.file;
-    filePath = "D:/node/worldbank/" + filePath.path;
-  
+    var path = require('path');
+    // let filePath = req.file;
+    // filePath = "D:/node/worldbank/" + filePath.path;
+     let filePath = path.resolve(__dirname) + "/../../upload/"+ Paths.Paths.CSV + "/" + req.file.filename;
+    // console.log("------------------- requestFileFileName", req.file.filename);
+    // console.log("------------------- filepath :", filePath); 
+    // return res.status(200).json({ message:  });
     try {
       saveFileToDatabase(filePath)
         .then(result => {
-          return res.status(200).json({ result });
+          return res.status(200).json({error_code:0, result });
         })
         .catch(err => {
           console.error(err);
           return res.status(500).json({ message: 'Error saving file to database' });
         });
     } catch (err) {
-      console.error(err);
-      return res.status(500).json({message: 'Error saving file to database' });
+      return res.status(500).json({ message: 'Error saving file to database' });
     }
   }
-  
 
 };

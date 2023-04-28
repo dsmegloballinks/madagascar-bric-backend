@@ -207,6 +207,13 @@ module.exports = {
     console.log(readFiles('example.xlsx'));
     console.log(readFiles('example.csv'));
     return result;
+  },
+  removeCommaAtEnd(str){
+    var lastChar = str.slice(-1);
+    if (lastChar == ',') {
+        str = str.slice(0, -1);
+    }
+    return str;
   }
   
 

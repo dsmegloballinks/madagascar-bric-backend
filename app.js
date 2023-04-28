@@ -13,6 +13,7 @@ const XLSX = require("xlsx");
 
 //--Firebase push notifictions code ends--//
 
+
 function generateUniqueId() {
   return crypto.randomBytes(16).toString("hex");
 }
@@ -27,7 +28,7 @@ app.use(cors());
 //--router used in app--//
 
 app.use("/api/civil_register", civilRegisterRouter);
-
+app.use(express.static("./upload"));
 //--socket.io connection--//
 
 pool.query('SELECT NOW()', (err, res) => {
