@@ -8,6 +8,7 @@ const { error } = require("console");
 const { runSql } = require("../../helper/helperfunctions");
 const { removeCommaAtEnd } = require("../../helper/helperfunctions");
 const { isNullOrEmpty } = require("../../helper/helperfunctions");
+const { constrainedMemory } = require("process");
 
 
 let fatherId;
@@ -106,7 +107,6 @@ module.exports = {
       }
     });
   },
-
   //working
   update: (data, file, callBack) => {
     var query = "UPDATE tbl_career_application SET ";
@@ -308,6 +308,173 @@ module.exports = {
       resolve("Some Error Occurred");
     }
   },
+  getChildCount: (date, callBack) => {
+    const today = new Date(date);
+    let lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    let lastMonth = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    let lastYear = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
+    console.log(lastWeek.toISOString("YYYY-MM-DD")+" 00:00:00")
+    const sqlLastWeek = `SELECT COUNT(*) AS child_count FROM registration_form WHERE dec_date >= '${date}'`;
+    const sqlLastMonth = `SELECT COUNT(*) AS child_count FROM registration_form WHERE now() >= '${lastMonth.toISOString()}'::timestamp AND now() <= '${today.toISOString()}'::timestamp`;
+    const sqlLastYear = `SELECT COUNT(*) AS child_count FROM civil_register WHERE now() >= '${lastYear.toISOString()}'::timestamp AND now() <= '${today.toISOString()}'::timestamp`;
+
+    const sqlTotal = `SELECT COUNT(*) AS child_count FROM civil_register`;
+
+    pool.query(
+      "SELECT child_cr_id FROM registration_form",
+      (error, results) => {
+        if (error) {
+          callBack(error);
+        } else {
+          const childCrIds = results.rows.map((result) => result.child_cr_id);
+          const sqlQuery = `SELECT COUNT(*) AS child_count FROM civil_register WHERE id IN (${childCrIds})`;
+          pool.query(sqlQuery, (error, results) => {
+            if (error) {
+              callBack(error);
+            } else {
+              const count = results.rows[0].child_count;
+              pool.query(sqlLastWeek, (error, results) => {
+                if (error) {
+                  callBack(error);
+                } else {
+                  const lastWeekCount = results.rows[0].child_count;
+                  pool.query(sqlLastMonth, (error, results) => {
+                    if (error) {
+                      callBack(error);
+                    } else {
+                      const lastMonthCount = results.rows[0].child_count;
+                      pool.query(sqlLastYear, (error, results) => {
+                        if (error) {
+                          callBack(error);
+                        } else {
+                          const lastYearCount = results.rows[0].child_count;
+                          pool.query(sqlTotal, (error, results) => {
+                            if (error) {
+                              callBack(error);
+                            } else {
+                              const totalCount = results.rows[0].child_count;
+                              callBack(null, {
+                                count,
+                                lastWeekCount,
+                                lastMonthCount,
+                                lastYearCount,
+                                totalCount,
+                              });
+                            }
+                          });
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      }
+    );
+  },
+  getFokontany2: (searchParams, callBack) => {
+    const { libelle_district, libelle_region, libelle_commune, libelle_fokontany } = searchParams || {};
+    const params = [];
+    const variable = ["$1", "$2", "$3", "$4"];
+    let index = 0;
+    let query = "SELECT * FROM fokontany WHERE 1=1";
+    if (libelle_region) {
+      query += " AND libelle_region = " + variable[index];
+      params.push(libelle_region);
+      index++;
+    }
+    if (libelle_district) {
+      query += " AND libelle_district = " + variable[index];
+      params.push(libelle_district);
+      index++;
+    }
+    if (libelle_commune) {
+      query += " AND libelle_commune = " + variable[index];
+      params.push(libelle_commune);
+      index++;
+    }
+    if (libelle_fokontany) {
+      query += " AND libelle_fokontany = " + variable[index];
+      params.push(libelle_fokontany);
+      index++;
+    }
+    pool.query(query, params, (error, results) => {
+      if (error) {
+        return callBack(error, null);
+      } else {
+        return callBack(null, results.rows);
+      }
+    });
+  },
+  getFokontany: async (searchParams, callBack) => {
+    try {
+      const { libelle_region, libelle_district, libelle_commune } = searchParams || {};
+      const params = [];
+      let ids = [];
+      let resultQuery = "";
+      if (libelle_region != null)
+      {
+        let query= `select distinct on (code_district) code_district, id From fokontany where code_region = ${libelle_region}`;
+        resultQuery = await runSql(pool, query, []);
+      }
+      else if (libelle_district != null)
+      {
+        let query= `select distinct on (code_commune) code_commune, id From fokontany where code_district = ${libelle_district}`;
+        resultQuery = await runSql(pool, query, []);
+      }
+      else if (libelle_commune != null)
+      {
+        let query= `select distinct on (code_fokontany) code_fokontany, id From fokontany where code_commune = ${libelle_commune}`;
+        resultQuery = await runSql(pool, query, []);
+      }
+      else
+      {
+        let query = "select distinct on (code_region) id, code_region from fokontany;";
+        resultQuery = await runSql(pool, query, []);
+      }
+      ids = resultQuery.rows.map(x => x.id);
+      var queryFinalResult = `select * from fokontany where id in (${ids})`;
+      var resultFinalResult = await runSql(pool, queryFinalResult, []);
+      return callBack(null, resultFinalResult.rows);
+    } catch (error) {
+      return callBack(error, null);
+    }
+  },
+  Dashboard: (callBack) => {
+    pool.query(
+      "SELECT child_cr_id FROM registration_form",
+      (error, results) => {
+        if (error) {
+          callBack(error);
+        } else {
+          const childCrIds = results.rows.map((result) => result.child_cr_id);
+          const sqlQuery = `SELECT gender,COUNT(*) AS child_count FROM civil_register WHERE id IN (${childCrIds}) GROUP BY gender`;
+          pool.query(sqlQuery, (error, result) => {
+            if (error) {
+              callBack(error);
+            }
+            else {
+              let total = 0;
+              result.rows.forEach(element => {
+                total += parseInt(element.child_count);
+              });
+              result.rows.forEach(element => {
+                element.avg = 0;
+                element.avg = ((parseInt(element.child_count) / total) * 100).toFixed(2);
+              });
+              callBack(null,
+                result.rows,
+              );
+            }
+
+          })
+        }
+      })
+  },
+
+  //-----------------------//
   //sample fucntion only\\
   saveFileToDatabase2: (filePath) => {
     let extension = filePath.split('.').pop();
@@ -694,4 +861,5 @@ module.exports = {
     }
 
   }
+  //-----------------------//
 };

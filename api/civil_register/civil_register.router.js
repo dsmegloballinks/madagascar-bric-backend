@@ -7,7 +7,10 @@ const {
   update,
   deleteById,
   convertFile,
-  saveFileToDatabase
+  saveFileToDatabase,
+  getChildCount,
+  getAllFokontany,
+  Dashboard
 } = require("./civil_register.controller");
 const Paths = require("../../helper/constants/Paths");
 
@@ -27,6 +30,9 @@ var upload = multer({
 }).single("file");
 
 router.post('/convert', upload, convertFile);
+router.get('/get-child-count', getChildCount);
+router.get("/get-fokontany", getAllFokontany);
+router.get("/dashboard", Dashboard);
 router.get("/get-all", getAll);
 router.post("/create", create);
 router.patch("/update", update);
