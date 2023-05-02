@@ -9,6 +9,20 @@ const { runSql } = require("../../helper/helperfunctions");
 const { removeCommaAtEnd } = require("../../helper/helperfunctions");
 const { isNullOrEmpty } = require("../../helper/helperfunctions");
 const { constrainedMemory } = require("process");
+const { query } = require("express");
+const { getMonthStartEnd } = require("../../helper/helperfunctions");
+const { getLastYear } = require("../../helper/helperfunctions");
+const { getLastSevenDays } = require("../../helper/helperfunctions");
+const { isNull } = require("util");
+const { getMinuteDiff } = require("../../helper/helperfunctions");
+const { addMinutesToDate } = require("../../helper/helperfunctions");
+const { stringToDate } = require("../../helper/helperfunctions");
+const { convertDateToString } = require("../../helper/helperfunctions");
+const { getCenterDate } = require("../../helper/helperfunctions");
+const { convertDateToDDDD } = require("../../helper/helperfunctions");
+const { convertToTime } = require("../../helper/helperfunctions");
+const { convertDateToDDD } = require("../../helper/helperfunctions");
+const { convertDateToMMM } = require("../../helper/helperfunctions");
 
 
 let fatherId;
@@ -47,7 +61,6 @@ module.exports = {
       }
     );
   },
-  //working
   getAll: (page, limit, callback) => {
     const offset = (page - 1) * limit;
     const query = `
@@ -107,7 +120,6 @@ module.exports = {
       }
     });
   },
-  //working
   update: (data, file, callBack) => {
     var query = "UPDATE tbl_career_application SET ";
     var whereClause = "";
@@ -146,7 +158,6 @@ module.exports = {
       return callBack(null, results);
     });
   },
-  //working
   deleteById: (id, callBack) => {
     pool.query(
       `DELETE FROM civil_register WHERE id = ${id}`,
@@ -161,252 +172,193 @@ module.exports = {
       }
     );
   },
-  saveFileToDatabase: (filePath) => {
+  saveFileToDatabase: (filePath, callBack) => {
     try {
       let extension = filePath.split('.').pop();
       let result = [];
       let childId;
       let motherId;
       return new Promise(async (resolve, reject) => {
-
-        let resultCivilRegisterInsert;
-        let resultCivilRegisterInsertFather;
-        let resultCivilRegisterInsertMother;
-        let resultCivilRegisterInsertDeclarant;
-
         try {
-          if (extension === 'xls' || extension === 'xlsx') {
-            let workbook = xlsx.readFile(filePath);
-            let sheetName = workbook.SheetNames[0];
-            let worksheet = workbook.Sheets[sheetName];
-            result = xlsx.utils.sheet_to_json(worksheet);
-          } else if (extension === 'csv') {
-            await new Promise((resolve, reject) => {
-              console.log("filePath", filePath);
-              fs.createReadStream(filePath)
-                .pipe(fastcsv.parse())
-                .on('data', (data) => {
-                  result.push(data);
-                })
-                .on('end', async () => {
-                  resolve();
-                });
-            });
-          }
-          else { reject('Invalid file type'); }
-        } catch (error) {
-          reject("error file reading file for data gathering ")
-        }
-        var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth) VALUES";
-        for (let i = 1; i < result.length; i++) {
-          if (isNullOrEmpty(result[i][6])) { result[i][6] = null; }
-          if (isNullOrEmpty(result[i][10])) { result[i][10] = null; }
-          if (isNullOrEmpty(result[i][11])) { result[i][11] = null; }
-          if (isNullOrEmpty(result[i][12])) { result[i][12] = null; }
-          if (isNullOrEmpty(result[i][13])) { result[i][13] = null; }
-          if (isNullOrEmpty(result[i][17])) { result[i][17] = null; }
-          if (isNullOrEmpty(result[i][18])) { result[i][18] = null; }
-          if (isNullOrEmpty(result[i][19])) { result[i][19] = null; }
-          if (isNullOrEmpty(result[i][21])) { result[i][21] = null; }
-          if (isNullOrEmpty(result[i][21])) { result[i][21] = null; }
-          if (isNullOrEmpty(result[i][21])) { result[i][21] = null; }
-          if (isNullOrEmpty(result[i][22])) { result[i][22] = null; }
-          if (isNullOrEmpty(result[i][13])) { result[i][13] = null; }
-          if (isNullOrEmpty(result[i][14])) { result[i][14] = null; }
-          if (isNullOrEmpty(result[i][15])) { result[i][15] = null; }
-          if (isNullOrEmpty(result[i][16])) { result[i][16] = null; }
-          queryCivilRegisterInsert += `('${result[i][6]}', '${result[i][10]}', '${result[i][11]}', '${result[i][12]}', '${result[i][13]}', '${result[i][17]}', '${result[i][18]}', '${result[i][19]}', '${result[i][21]}', '${result[i][21]}', '${result[i][21]}', '${result[i][22]}', '${result[i][13]}', '${result[i][14]}', '${result[i][15]}', '${result[i][16]}'),`;
-        }
-        queryCivilRegisterInsert = removeCommaAtEnd(queryCivilRegisterInsert);
-        queryCivilRegisterInsert += " RETURNING id, uin";
-        resultCivilRegisterInsert = await runSql(pool, queryCivilRegisterInsert, []);
+          let resultCivilRegisterInsert;
+          let resultCivilRegisterInsertFather;
+          let resultCivilRegisterInsertMother;
+          let resultCivilRegisterInsertDeclarant;
 
-
-        var queryCivilRegisterInsertFather = "INSERT INTO civil_register (uin, given_name, date_of_birth, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES";
-        // ######## FOR FATHER ######## \\
-        for (let i = 1; i < result.length; i++) {
-          if (isNullOrEmpty(result[i][36])) { result[i][36] = null; }
-          if (isNullOrEmpty(result[i][38])) { result[i][38] = null; }
-          if (isNullOrEmpty(result[i][39])) { result[i][39] = null; }
-          if (isNullOrEmpty(result[i][42])) { result[i][42] = null; }
-          if (isNullOrEmpty(result[i][43])) { result[i][43] = null; }
-          if (isNullOrEmpty(result[i][44])) { result[i][44] = null; }
-          if (isNullOrEmpty(result[i][45])) { result[i][45] = null; }
-          if (isNullOrEmpty(result[i][46])) { result[i][46] = null; }
-
-          queryCivilRegisterInsertFather += `(${result[i][36]},'${result[i][38]}','${result[i][39]}','${result[i][42]}','${result[i][43]}','${result[i][44]}','${result[i][45]}','${result[i][46]}'),`;
-        }
-        queryCivilRegisterInsertFather = removeCommaAtEnd(queryCivilRegisterInsertFather);
-        queryCivilRegisterInsertFather += " RETURNING id, uin";
-        resultCivilRegisterInsertFather = await runSql(pool, queryCivilRegisterInsertFather, []);
-        // ######## FOR FATHER ######## \\
-
-        // ######## FOR MOTHER ######## \\
-        var queryCivilRegisterInsertMother = "INSERT INTO civil_register (uin, given_name, date_of_birth, place_of_birth, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES";
-        for (let i = 1; i < result.length; i++) {
-          if (isNullOrEmpty(result[i][24])) { result[i][24] = null; }
-          if (isNullOrEmpty(result[i][26])) { result[i][26] = null; }
-          if (isNullOrEmpty(result[i][27])) { result[i][27] = null; }
-          if (isNullOrEmpty(result[i][29])) { result[i][29] = null; }
-          if (isNullOrEmpty(result[i][34])) { result[i][34] = null; }
-          if (isNullOrEmpty(result[i][29])) { result[i][29] = null; }
-          if (isNullOrEmpty(result[i][30])) { result[i][30] = null; }
-          if (isNullOrEmpty(result[i][31])) { result[i][31] = null; }
-          if (isNullOrEmpty(result[i][32])) { result[i][32] = null; }
-          if (isNullOrEmpty(result[i][33])) { result[i][33] = null; }
-
-          queryCivilRegisterInsertMother += `('${result[i][24]}', '${result[i][26]}', '${result[i][27]}', '${result[i][29]}', '${result[i][34]}', '${result[i][29]}', '${result[i][30]}', '${result[i][31]}',  '${result[i][32]}', '${result[i][33]}'),`;
-        }
-        queryCivilRegisterInsertMother = removeCommaAtEnd(queryCivilRegisterInsertMother);
-        queryCivilRegisterInsertMother += " RETURNING id, uin";
-        resultCivilRegisterInsertMother = await runSql(pool, queryCivilRegisterInsertMother, []);
-        // ######## FOR MOTHER ######## \\
-
-
-        // ######## FOR DECLARANT ######## \\
-        var queryCivilRegisterInsertDeclarant = "INSERT INTO civil_register (uin, given_name, date_of_birth, region_of_birth) VALUES";
-        for (let i = 1; i < result.length; i++) {
-          if (isNullOrEmpty(result[i][48])) { result[i][48] = null; }
-          if (isNullOrEmpty(result[i][50])) { result[i][50] = null; }
-          if (isNullOrEmpty(result[i][51])) { result[i][51] = null; }
-          if (isNullOrEmpty(result[i][52])) { result[i][52] = null; }
-
-          queryCivilRegisterInsertDeclarant += `('${result[i][48]}', '${result[i][50]}', '${result[i][51]}', '${result[i][52]}'),`;
-        }
-        queryCivilRegisterInsertDeclarant = removeCommaAtEnd(queryCivilRegisterInsertDeclarant);
-        queryCivilRegisterInsertDeclarant += " RETURNING id, uin";
-        resultCivilRegisterInsertDeclarant = await runSql(pool, queryCivilRegisterInsertDeclarant, []);
-        // ######## FOR DECLARANT ######## \\
-
-        var childsInfo = resultCivilRegisterInsert.rows;
-        var fathersInfo = resultCivilRegisterInsertFather.rows;
-        var mothersInfo = resultCivilRegisterInsertMother.rows;
-        var delarantsInfo = resultCivilRegisterInsertDeclarant.rows;
-
-        var resultCopy = result.splice(1, result.length - 1);
-        var queryRegistrationFormInsert = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, dec_sign, in_charge_sign) VALUES";
-        for (let i = 0; i < childsInfo.length; i++) {
-          const childInfo = childsInfo[i];
-          let indexChildFileData = resultCopy.findIndex(element => element[6] == childInfo.uin);
-          if (indexChildFileData > -1) {
-            var indexFather = fathersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][36]);
-            var indexMother = mothersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][24]);
-            var indexDeclarant = delarantsInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][48]);
-            var fatherId = fathersInfo[indexFather].id;
-            var motherId = mothersInfo[indexMother].id;
-            var declarantId = delarantsInfo[indexDeclarant].id;
-            queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${resultCopy[indexChildFileData][47]}','${resultCopy[indexChildFileData][7]}','${resultCopy[indexChildFileData][8]}','${resultCopy[indexChildFileData][53]}','${resultCopy[indexChildFileData][53]}'),`
-          }
-        }
-        queryRegistrationFormInsert = removeCommaAtEnd(queryRegistrationFormInsert);
-        queryRegistrationFormInsert += " RETURNING id";
-        var resultRegistrationFormInsertDeclarant = await runSql(pool, queryRegistrationFormInsert, []);
-        resolve("Data entered");
-
-      });
-    } catch (error) {
-      resolve("Some Error Occurred");
-    }
-  },
-  getChildCount: (date, callBack) => {
-    const today = new Date(date);
-    let lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    let lastMonth = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    let lastYear = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
-    console.log(lastWeek.toISOString("YYYY-MM-DD")+" 00:00:00")
-    const sqlLastWeek = `SELECT COUNT(*) AS child_count FROM registration_form WHERE dec_date >= '${date}'`;
-    const sqlLastMonth = `SELECT COUNT(*) AS child_count FROM registration_form WHERE now() >= '${lastMonth.toISOString()}'::timestamp AND now() <= '${today.toISOString()}'::timestamp`;
-    const sqlLastYear = `SELECT COUNT(*) AS child_count FROM civil_register WHERE now() >= '${lastYear.toISOString()}'::timestamp AND now() <= '${today.toISOString()}'::timestamp`;
-
-    const sqlTotal = `SELECT COUNT(*) AS child_count FROM civil_register`;
-
-    pool.query(
-      "SELECT child_cr_id FROM registration_form",
-      (error, results) => {
-        if (error) {
-          callBack(error);
-        } else {
-          const childCrIds = results.rows.map((result) => result.child_cr_id);
-          const sqlQuery = `SELECT COUNT(*) AS child_count FROM civil_register WHERE id IN (${childCrIds})`;
-          pool.query(sqlQuery, (error, results) => {
-            if (error) {
-              callBack(error);
-            } else {
-              const count = results.rows[0].child_count;
-              pool.query(sqlLastWeek, (error, results) => {
-                if (error) {
-                  callBack(error);
-                } else {
-                  const lastWeekCount = results.rows[0].child_count;
-                  pool.query(sqlLastMonth, (error, results) => {
-                    if (error) {
-                      callBack(error);
-                    } else {
-                      const lastMonthCount = results.rows[0].child_count;
-                      pool.query(sqlLastYear, (error, results) => {
-                        if (error) {
-                          callBack(error);
-                        } else {
-                          const lastYearCount = results.rows[0].child_count;
-                          pool.query(sqlTotal, (error, results) => {
-                            if (error) {
-                              callBack(error);
-                            } else {
-                              const totalCount = results.rows[0].child_count;
-                              callBack(null, {
-                                count,
-                                lastWeekCount,
-                                lastMonthCount,
-                                lastYearCount,
-                                totalCount,
-                              });
-                            }
-                          });
-                        }
-                      });
-                    }
+          try {
+            if (extension === 'xls' || extension === 'xlsx') {
+              let workbook = xlsx.readFile(filePath);
+              let sheetName = workbook.SheetNames[0];
+              let worksheet = workbook.Sheets[sheetName];
+              result = xlsx.utils.sheet_to_json(worksheet);
+            } else if (extension === 'csv') {
+              await new Promise((resolve, reject) => {
+                console.log("filePath", filePath);
+                fs.createReadStream(filePath)
+                  .pipe(fastcsv.parse())
+                  .on('data', (data) => {
+                    result.push(data);
+                  })
+                  .on('end', async () => {
+                    resolve();
                   });
-                }
               });
             }
-          });
+            else { reject('Invalid file type'); }
+          } catch (error) {
+            reject("error file reading file for data gathering ")
+          }
+          var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth) VALUES";
+          for (let i = 1; i < result.length; i++) {
+            if (isNullOrEmpty(result[i][6])) { result[i][6] = null; }
+            if (isNullOrEmpty(result[i][10])) { result[i][10] = null; }
+            if (isNullOrEmpty(result[i][11])) { result[i][11] = null; }
+            if (isNullOrEmpty(result[i][12])) { result[i][12] = null; }
+            if (isNullOrEmpty(result[i][13])) { result[i][13] = null; }
+            if (isNullOrEmpty(result[i][17])) { result[i][17] = null; }
+            if (isNullOrEmpty(result[i][18])) { result[i][18] = null; }
+            if (isNullOrEmpty(result[i][19])) { result[i][19] = null; }
+            if (isNullOrEmpty(result[i][21])) { result[i][21] = null; }
+            if (isNullOrEmpty(result[i][21])) { result[i][21] = null; }
+            if (isNullOrEmpty(result[i][21])) { result[i][21] = null; }
+            if (isNullOrEmpty(result[i][22])) { result[i][22] = null; }
+            if (isNullOrEmpty(result[i][13])) { result[i][13] = null; }
+            if (isNullOrEmpty(result[i][14])) { result[i][14] = null; }
+            if (isNullOrEmpty(result[i][15])) { result[i][15] = null; }
+            if (isNullOrEmpty(result[i][16])) { result[i][16] = null; }
+            queryCivilRegisterInsert += `('${result[i][6]}', '${result[i][10]}', '${result[i][11]}', '${result[i][12]}', '${result[i][13]}', '${result[i][17]}', '${result[i][18]}', '${result[i][19]}', '${result[i][21]}', '${result[i][21]}', '${result[i][21]}', '${result[i][22]}', '${result[i][13]}', '${result[i][14]}', '${result[i][15]}', '${result[i][16]}'),`;
+          }
+          queryCivilRegisterInsert = removeCommaAtEnd(queryCivilRegisterInsert);
+          queryCivilRegisterInsert += " RETURNING id, uin";
+          resultCivilRegisterInsert = await runSql(pool, queryCivilRegisterInsert, []);
+
+
+          var queryCivilRegisterInsertFather = "INSERT INTO civil_register (uin, given_name, date_of_birth, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES";
+          // ######## FOR FATHER ######## \\
+          for (let i = 1; i < result.length; i++) {
+            if (isNullOrEmpty(result[i][36])) { result[i][36] = null; }
+            if (isNullOrEmpty(result[i][38])) { result[i][38] = null; }
+            if (isNullOrEmpty(result[i][39])) { result[i][39] = null; }
+            if (isNullOrEmpty(result[i][42])) { result[i][42] = null; }
+            if (isNullOrEmpty(result[i][43])) { result[i][43] = null; }
+            if (isNullOrEmpty(result[i][44])) { result[i][44] = null; }
+            if (isNullOrEmpty(result[i][45])) { result[i][45] = null; }
+            if (isNullOrEmpty(result[i][46])) { result[i][46] = null; }
+
+            queryCivilRegisterInsertFather += `(${result[i][36]},'${result[i][38]}','${result[i][39]}','${result[i][42]}','${result[i][43]}','${result[i][44]}','${result[i][45]}','${result[i][46]}'),`;
+          }
+          queryCivilRegisterInsertFather = removeCommaAtEnd(queryCivilRegisterInsertFather);
+          queryCivilRegisterInsertFather += " RETURNING id, uin";
+          resultCivilRegisterInsertFather = await runSql(pool, queryCivilRegisterInsertFather, []);
+          // ######## FOR FATHER ######## \\
+
+          // ######## FOR MOTHER ######## \\
+          var queryCivilRegisterInsertMother = "INSERT INTO civil_register (uin, given_name, date_of_birth, place_of_birth, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES";
+          for (let i = 1; i < result.length; i++) {
+            if (isNullOrEmpty(result[i][24])) { result[i][24] = null; }
+            if (isNullOrEmpty(result[i][26])) { result[i][26] = null; }
+            if (isNullOrEmpty(result[i][27])) { result[i][27] = null; }
+            if (isNullOrEmpty(result[i][29])) { result[i][29] = null; }
+            if (isNullOrEmpty(result[i][34])) { result[i][34] = null; }
+            if (isNullOrEmpty(result[i][29])) { result[i][29] = null; }
+            if (isNullOrEmpty(result[i][30])) { result[i][30] = null; }
+            if (isNullOrEmpty(result[i][31])) { result[i][31] = null; }
+            if (isNullOrEmpty(result[i][32])) { result[i][32] = null; }
+            if (isNullOrEmpty(result[i][33])) { result[i][33] = null; }
+
+            queryCivilRegisterInsertMother += `('${result[i][24]}', '${result[i][26]}', '${result[i][27]}', '${result[i][29]}', '${result[i][34]}', '${result[i][29]}', '${result[i][30]}', '${result[i][31]}',  '${result[i][32]}', '${result[i][33]}'),`;
+          }
+          queryCivilRegisterInsertMother = removeCommaAtEnd(queryCivilRegisterInsertMother);
+          queryCivilRegisterInsertMother += " RETURNING id, uin";
+          resultCivilRegisterInsertMother = await runSql(pool, queryCivilRegisterInsertMother, []);
+          // ######## FOR MOTHER ######## \\
+
+
+          // ######## FOR DECLARANT ######## \\
+          var queryCivilRegisterInsertDeclarant = "INSERT INTO civil_register (uin, given_name, date_of_birth, region_of_birth) VALUES";
+          for (let i = 1; i < result.length; i++) {
+            if (isNullOrEmpty(result[i][48])) { result[i][48] = null; }
+            if (isNullOrEmpty(result[i][50])) { result[i][50] = null; }
+            if (isNullOrEmpty(result[i][51])) { result[i][51] = null; }
+            if (isNullOrEmpty(result[i][52])) { result[i][52] = null; }
+
+            queryCivilRegisterInsertDeclarant += `('${result[i][48]}', '${result[i][50]}', '${result[i][51]}', '${result[i][52]}'),`;
+          }
+          queryCivilRegisterInsertDeclarant = removeCommaAtEnd(queryCivilRegisterInsertDeclarant);
+          queryCivilRegisterInsertDeclarant += " RETURNING id, uin";
+          resultCivilRegisterInsertDeclarant = await runSql(pool, queryCivilRegisterInsertDeclarant, []);
+          // ######## FOR DECLARANT ######## \\
+
+          var childsInfo = resultCivilRegisterInsert.rows;
+          var fathersInfo = resultCivilRegisterInsertFather.rows;
+          var mothersInfo = resultCivilRegisterInsertMother.rows;
+          var delarantsInfo = resultCivilRegisterInsertDeclarant.rows;
+
+          var resultCopy = result.splice(1, result.length - 1);
+          var queryRegistrationFormInsert = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, dec_sign, in_charge_sign) VALUES";
+          for (let i = 0; i < childsInfo.length; i++) {
+            const childInfo = childsInfo[i];
+            let indexChildFileData = resultCopy.findIndex(element => element[6] == childInfo.uin);
+            if (indexChildFileData > -1) {
+              var indexFather = fathersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][36]);
+              var indexMother = mothersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][24]);
+              var indexDeclarant = delarantsInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][48]);
+              var fatherId = fathersInfo[indexFather].id;
+              var motherId = mothersInfo[indexMother].id;
+              var declarantId = delarantsInfo[indexDeclarant].id;
+              queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${resultCopy[indexChildFileData][47]}','${resultCopy[indexChildFileData][7]}','${resultCopy[indexChildFileData][8]}','${resultCopy[indexChildFileData][53]}','${resultCopy[indexChildFileData][53]}'),`
+            }
+          }
+          queryRegistrationFormInsert = removeCommaAtEnd(queryRegistrationFormInsert);
+          queryRegistrationFormInsert += " RETURNING id";
+          var resultRegistrationFormInsertDeclarant = await runSql(pool, queryRegistrationFormInsert, []);
+          resolve("Data entered");
+        } catch (error) {
+          reject(error);
         }
-      }
-    );
+      });
+    } catch (error) {
+      return callBack(isNullOrEmpty(error.message) ? error : error.message, null);
+    }
   },
-  getFokontany2: (searchParams, callBack) => {
-    const { libelle_district, libelle_region, libelle_commune, libelle_fokontany } = searchParams || {};
-    const params = [];
-    const variable = ["$1", "$2", "$3", "$4"];
-    let index = 0;
-    let query = "SELECT * FROM fokontany WHERE 1=1";
-    if (libelle_region) {
-      query += " AND libelle_region = " + variable[index];
-      params.push(libelle_region);
-      index++;
+  getChildCount: async (sDate, callBack) => {
+    try {
+      // VALID_DATE_FORMAT yyyy-mm-dd //
+
+      var response = {};
+      var year = sDate.split("-")[0];
+      var month = sDate.split("-")[1];
+      //#region OverAll
+      var queryOverAllCount = "SELECT count(child_cr_id) FROM registration_form";
+      var resultOverAllCount = await runSql(pool, queryOverAllCount, []);
+      response.over_all_count = resultOverAllCount.rows[0].count;
+      //#endregion
+
+      //#region LastMonth
+      var monthDates = getMonthStartEnd(sDate);
+      var queryMonthDataQuery = `SELECT count(child_cr_id) FROM registration_form where dec_date >= '${monthDates.start}' and dec_date <= '${monthDates.end}'`;
+      var resultMonthDataQuery = await runSql(pool, queryMonthDataQuery, []);
+      response.month_count = resultMonthDataQuery.rows[0].count;
+      //#region LastMonth
+
+      //#region LastYear
+      var yearDates = getLastYear(sDate);
+      var queryYearData = `SELECT count(child_cr_id) FROM registration_form where dec_date >= '${yearDates.start}' and dec_date <= '${yearDates.end}'`;
+      var resultYearData = await runSql(pool, queryYearData, []);
+      response.year_count = resultYearData.rows[0].count;
+      //#region LastYear
+
+      //#region LastSevenDays
+      var lastSevenDates = getLastSevenDays(sDate);
+      var queryLastSevenData = `SELECT count(child_cr_id) FROM registration_form where dec_date >= '${lastSevenDates.start}' and dec_date <= '${lastSevenDates.end}'`;
+      var resultLastSevenData = await runSql(pool, queryLastSevenData, []);
+      response.last_seven_days_count = resultLastSevenData.rows[0].count;
+      //#region LastSevenDays
+
+      return callBack(null, response);
+    } catch (error) {
+      return callBack(error, null);
     }
-    if (libelle_district) {
-      query += " AND libelle_district = " + variable[index];
-      params.push(libelle_district);
-      index++;
-    }
-    if (libelle_commune) {
-      query += " AND libelle_commune = " + variable[index];
-      params.push(libelle_commune);
-      index++;
-    }
-    if (libelle_fokontany) {
-      query += " AND libelle_fokontany = " + variable[index];
-      params.push(libelle_fokontany);
-      index++;
-    }
-    pool.query(query, params, (error, results) => {
-      if (error) {
-        return callBack(error, null);
-      } else {
-        return callBack(null, results.rows);
-      }
-    });
   },
   getFokontany: async (searchParams, callBack) => {
     try {
@@ -414,23 +366,19 @@ module.exports = {
       const params = [];
       let ids = [];
       let resultQuery = "";
-      if (libelle_region != null)
-      {
-        let query= `select distinct on (code_district) code_district, id From fokontany where code_region = ${libelle_region}`;
+      if (libelle_region != null) {
+        let query = `select distinct on (code_district) code_district, id From fokontany where code_region = ${libelle_region}`;
         resultQuery = await runSql(pool, query, []);
       }
-      else if (libelle_district != null)
-      {
-        let query= `select distinct on (code_commune) code_commune, id From fokontany where code_district = ${libelle_district}`;
+      else if (libelle_district != null) {
+        let query = `select distinct on (code_commune) code_commune, id From fokontany where code_district = ${libelle_district}`;
         resultQuery = await runSql(pool, query, []);
       }
-      else if (libelle_commune != null)
-      {
-        let query= `select distinct on (code_fokontany) code_fokontany, id From fokontany where code_commune = ${libelle_commune}`;
+      else if (libelle_commune != null) {
+        let query = `select distinct on (code_fokontany) code_fokontany, id From fokontany where code_commune = ${libelle_commune}`;
         resultQuery = await runSql(pool, query, []);
       }
-      else
-      {
+      else {
         let query = "select distinct on (code_region) id, code_region from fokontany;";
         resultQuery = await runSql(pool, query, []);
       }
@@ -442,424 +390,129 @@ module.exports = {
       return callBack(error, null);
     }
   },
-  Dashboard: (callBack) => {
-    pool.query(
-      "SELECT child_cr_id FROM registration_form",
-      (error, results) => {
-        if (error) {
-          callBack(error);
-        } else {
-          const childCrIds = results.rows.map((result) => result.child_cr_id);
-          const sqlQuery = `SELECT gender,COUNT(*) AS child_count FROM civil_register WHERE id IN (${childCrIds}) GROUP BY gender`;
-          pool.query(sqlQuery, (error, result) => {
-            if (error) {
-              callBack(error);
-            }
-            else {
-              let total = 0;
-              result.rows.forEach(element => {
-                total += parseInt(element.child_count);
-              });
-              result.rows.forEach(element => {
-                element.avg = 0;
-                element.avg = ((parseInt(element.child_count) / total) * 100).toFixed(2);
-              });
-              callBack(null,
-                result.rows,
-              );
-            }
+  Dashboard: (region, district, commune, fokontany, callBack) => {
+    const filterConditions = [];
+    const filterValues = [];
 
-          })
-        }
-      })
-  },
+    if (!isNullOrEmpty(region)) {
+      filterConditions.push(`code_region = $${filterValues.length + 1}`);
+      filterValues.push(region);
+    }
+    if (!isNullOrEmpty(district)) {
+      filterConditions.push(`code_district = $${filterValues.length + 1}`);
+      filterValues.push(district);
+    }
+    if (!isNullOrEmpty(commune)) {
+      filterConditions.push(`code_commune = $${filterValues.length + 1}`);
+      filterValues.push(commune);
+    }
+    if (!isNullOrEmpty(fokontany)) {
+      filterConditions.push(`code_fokontany = $${filterValues.length + 1}`);
+      filterValues.push(fokontany);
+    }
 
-  //-----------------------//
-  //sample fucntion only\\
-  saveFileToDatabase2: (filePath) => {
-    let extension = filePath.split('.').pop();
-    let result = [];
-    let childId;
-    let motherId;
+    let sqlQuery = `
+      SELECT child_cr_id
+      FROM registration_form
+    `;
 
-    return new Promise(async (resolve, reject) => {
-      if (extension === 'xls' || extension === 'xlsx') {
-        let workbook = xlsx.readFile(filePath);
-        let sheetName = workbook.SheetNames[0];
-        let worksheet = workbook.Sheets[sheetName];
-        result = xlsx.utils.sheet_to_json(worksheet);
-        //--for child--//
-        let values = [];
-        for (let i = 1; i < result.length; i++) {
-          values.push([result[i][6], result[i][10], result[i][11], result[i][11], result[i][13], result[i][17], result[i][18], result[i][19], result[i][21], result[i][21], result[i][21], result[i][22], result[i][13], result[i][14], result[i][15], result[i][16]]);
-        }
+    if (filterConditions.length > 0) {
+      sqlQuery += `
+        INNER JOIN civil_register ON registration_form.mother_cr_id = civil_register.id
+        WHERE ${filterConditions.join(' AND ')}
+      `;
+    }
 
-        let query = "INSERT INTO civil_register (uin, given_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)";
-        for (let i = 1; i < result.length; i++) {
-          values.push([result[i][6], result[i][10], result[i][11], result[i][11], result[i][13], result[i][17], result[i][18], result[i][19], result[i][21], result[i][21], result[i][21], result[i][22], result[i][13], result[i][14], result[i][15], result[i][16]]);
-        }
-        // pool.query(query, [values], (err, res) => {
-        //   if (err) {
-        //     reject(err);
-        //   }
-        //   resolve(res);
-        // });
-      } else if (extension === 'csv') {
-
-        fs.createReadStream(filePath)
-          .pipe(fastcsv.parse())
-          .on('data', (data) => {
-            result.push(data);
-          })
-          .on('end', async () => {
-            let values = [];
-            for (let i = 1; i < result.length; i++) {
-              values.push([result[i][6], result[i][10], result[i][11], result[i][12], result[i][13], result[i][17], result[i][18], result[i][19], result[i][21], result[i][21], result[i][21], result[i][22], result[i][13], result[i][14], result[i][15], result[i][16]]);
-            }
-            let query = "INSERT INTO civil_register (uin, given_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id";
-            var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth) VALUES";
-            for (let i = 1; i < result.length; i++) {
-              if (isNullOrEmpty(result[i][6])) { result[i][6] = null; }
-              if (isNullOrEmpty(result[i][10])) { result[i][10] = null; }
-              if (isNullOrEmpty(result[i][11])) { result[i][11] = null; }
-              if (isNullOrEmpty(result[i][12])) { result[i][12] = null; }
-              if (isNullOrEmpty(result[i][13])) { result[i][13] = null; }
-              if (isNullOrEmpty(result[i][17])) { result[i][17] = null; }
-              if (isNullOrEmpty(result[i][18])) { result[i][18] = null; }
-              if (isNullOrEmpty(result[i][19])) { result[i][19] = null; }
-              if (isNullOrEmpty(result[i][21])) { result[i][21] = null; }
-              if (isNullOrEmpty(result[i][21])) { result[i][21] = null; }
-              if (isNullOrEmpty(result[i][21])) { result[i][21] = null; }
-              if (isNullOrEmpty(result[i][22])) { result[i][22] = null; }
-              if (isNullOrEmpty(result[i][13])) { result[i][13] = null; }
-              if (isNullOrEmpty(result[i][14])) { result[i][14] = null; }
-              if (isNullOrEmpty(result[i][15])) { result[i][15] = null; }
-              if (isNullOrEmpty(result[i][16])) { result[i][16] = null; }
-              queryCivilRegisterInsert += `('${result[i][6]}', '${result[i][10]}', '${result[i][11]}', '${result[i][12]}', '${result[i][13]}', '${result[i][17]}', '${result[i][18]}', '${result[i][19]}', '${result[i][21]}', '${result[i][21]}', '${result[i][21]}', '${result[i][22]}', '${result[i][13]}', '${result[i][14]}', '${result[i][15]}', '${result[i][16]}'),`;
-              queryCivilRegisterInsert += `(${result[i][36]},${result[i][38]},${result[i][39]},${result[i][42]},${result[i][43]},${result[i][44]},${result[i][45]},${result[i][46]}),`;
-            }
-            queryCivilRegisterInsert = removeCommaAtEnd(queryCivilRegisterInsert);
-            queryCivilRegisterInsert += " RETURNING id, uin";
-            try {
-              var dataResult = await runSql(pool, queryCivilRegisterInsert, []);
-            }
-            catch (exceptionError) {
-              console.log(exceptionError.message);
-            }
-
-            pool.query(query, values[0], (err, res) => {
-              //console.log("err:", err)
-              if (err) {
-                reject(err);
-              }
-              //console.log("cId:", res.rows[0].id)
-              childId = res.rows[0].id;
-
-              //--for  mother--//
-
-              for (let i = 1; i < result.length; i++) {
-                valueToSearch = result[i][24];
-
-                pool.query(`SELECT * FROM civil_register WHERE uin = '${valueToSearch}'`, (err, dbResult) => {
-                  if (err) {
-                    console.error(err);
-                  } else {
-                    if (dbResult.rows.length > 0) {
-                      // console.log("mId:", dbResult.rows[0].id)
-                      motherId = dbResult.rows[0].id;
-                      valueToSearch = result[i][36];
-                      insertFather(valueToSearch, i);
-                      //console.log(`Value '${valueToSearch}' exists in the database`);
-                    } else {
-                      const valuesToInsert = [result[i][24],
-                      result[i][26],
-                      result[i][27],
-                      result[i][29],
-                      result[i][34],
-                      result[i][29],
-                      result[i][30],
-                      result[i][31],
-                      result[i][32],
-                      result[i][33]
-                      ];
-
-                      let query2 = "INSERT INTO civil_register (uin, given_name, date_of_birth, place_of_birth, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id";
-
-                      pool.query(query2, valuesToInsert, (err, res) => {
-                        if (err) {
-                          console.error(err);
-                        } else {
-                          //console.log("mId:", res.rows[0].id)
-                          motherId = res.rows[0].id;
-                          valueToSearch = result[i][36];
-                          insertFather(valueToSearch, i);
-                          //console.log(`Value '${valueToSearch}' does not exist in the database and has been inserted`);
-                        }
-                      });
-                    }
-                  }
-                });
-                // }
-                //for father//
-                // for (let i = 1; i < result.length; i++) {
-                // pool.query(`SELECT * FROM civil_register WHERE uin = '${valueToSearch}'`, (err, dbResult) => {
-                //   if (err) {
-                //     console.error(err);
-                //   } else {
-                //     if (dbResult.rows.length > 0) {
-                //       //console.log("fId:", dbResult.rows[0].id)
-                //       fatherId = dbResult.rows[0].id;
-                //       //console.log(`Value '${valueToSearch}' exists in the database`);
-                //     } else {
-                //       if (result[i][40] == "non") {
-                //         const valuesToInsert = [result[i][36],
-                //         result[i][38],
-                //         result[i][39],
-                //         result[i][42],
-                //         result[i][43],
-                //         result[i][44],
-                //         result[i][45],
-                //         result[i][46]
-                //         ];
-
-                //         let query2 = "INSERT INTO civil_register (uin, given_name, date_of_birth, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id";
-
-                //         pool.query(query2, valuesToInsert, (err, res) => {
-                //           if (err) {
-                //             console.error(err);
-                //           } else {
-                //             //console.log("fId:", res.rows[0].id)
-                //             fatherId = res.rows[0].id;
-                //             //console.log(`Value '${valueToSearch}' does not exist in the database and has been inserted`);
-                //           }
-                //         });
-                //       } else {
-                //         const valuesToInsert = [result[i][36],
-                //         result[i][38],
-                //         result[i][39],
-                //         result[i][29],
-                //         result[i][30],
-                //         result[i][31],
-                //         result[i][32],
-                //         result[i][46]
-                //         ];
-
-                //         let query2 = "INSERT INTO civil_register (uin, given_name, date_of_birth, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id";
-
-                //         pool.query(query2, valuesToInsert, (err, res) => {
-                //           if (err) {
-                //             console.error(err);
-                //           } else {
-                //             //console.log("fId:", res.rows[0].id)
-                //             fatherId = res.rows[0].id;
-                //             //console.log(`Value '${valueToSearch}' does not exist in the database and has been inserted`);
-                //           }
-                //         });
-                //       }
-
-                //     }
-                //   }
-                // });
-                // }
-                //--for declarent--//
-                // for (let i = 1; i < result.length; i++) {
-
-                // pool.query(`SELECT * FROM civil_register WHERE uin = '${valueToSearch}'`, (err, dbResult) => {
-                //   if (err) {
-                //     console.error(err);
-                //   } else {
-                //     if (dbResult.rows.length > 0) {
-                //       //console.log("fId:", dbResult.rows[0].id)
-                //       decId = res.rows[0].id;
-                //       //console.log(`Value '${valueToSearch}' exists in the database`);
-                //     } else {
-                //       const valuesToInsert = [result[i][48],
-                //       result[i][50],
-                //       result[i][51],
-                //       result[i][52]
-                //       ];
-
-                //       let query2 = "INSERT INTO civil_register (uin, given_name, date_of_birth, region_of_birth) VALUES ($1, $2, $3, $4) RETURNING id";
-
-                //       pool.query(query2, valuesToInsert, (err, res) => {
-                //         //console.log("error :", err);
-                //         //console.log("res :", res);
-                //         if (err) {
-                //           console.error(err);
-                //         } else {
-                //           //console.log("DId:", res.rows[0].id);
-                //           decId = res.rows[0].id;
-                //           //console.log("dic id :", decId);
-                //           //console.log(`Value '${valueToSearch}' does not exist in the database and has been inserted`);
-                //         }
-                //       });
-                //     }
-                //   }
-                // });
-                // }
-                // for (let i = 1; i < result.length; i++) {
-                let selectQuery = "SELECT id FROM civil_register LIMIT 1 OFFSET $1";
-                let selectValues = [i - 1];
-
-                pool.query(selectQuery, selectValues, (err, res) => {
-                  if (err) {
-                    console.error(err);
-                  } else {
-                    let childId = res.rows[0].id;
-
-                    const valuesToInsert = [childId, fatherId, motherId, decId, result[i][47],
-                      result[i][7],
-                      result[i][8],
-                      result[i][53],
-                      result[i][53]
-                    ];
-
-                    let insertQuery = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, dec_sign, in_charge_sign) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)";
-                    //console.log("insertQuery :", insertQuery);
-                    //console.log("valuesToInsert :", valuesToInsert);
-
-                    pool.query(insertQuery, valuesToInsert, (err, res) => {
-                      if (err) {
-                        console.error(err);
-                      } else {
-                        //console.log(`Values '${valuesToInsert}' have been inserted`);
-                      }
-                    });
-                  }
-                });
-                // }
-
-                // for (let i = 1; i < result.length; i++) {
-                const valuesToInsert = [
-                  childId,
-                  result[i][55],
-                  result[i][56],
-                  new Date().toISOString().substring(0, 19).replace('T', ' '),
-                ];
-
-                let query2 = "INSERT INTO attached_document (cr_id, document_name, document_type, date_created) VALUES ($1, $2, $3, $4)";
-
-                pool.query(query2, valuesToInsert, (err, res) => {
-                  if (err) {
-                    console.error(err);
-                  } else {
-                    resolve(res);
-                    //console.log(`Value '${valuesToInsert}' does not exist in the database and has been inserted`);
-                  }
-
-                });
-
-              }
-
-              return 0;
-            });
-
-          });
+    pool.query(sqlQuery, filterValues, (error, results) => {
+      if (error) {
+        callBack(error);
       } else {
-        reject('Invalid file type');
+        const childCrIds = results.rows.map((result) => result.child_cr_id);
+
+        let childCountQuery = `
+          SELECT gender, COUNT(*) AS child_count
+          FROM civil_register
+          WHERE id IN (${childCrIds})
+        `;
+
+        if (filterConditions.length > 0) {
+          childCountQuery += `
+            AND ${filterConditions.join(' AND ')}
+          `;
+        }
+
+        childCountQuery += `
+          GROUP BY gender
+        `;
+
+        pool.query(childCountQuery, filterValues, (error, result) => {
+          if (error) {
+            callBack(error);
+          } else {
+            let total = 0;
+            result.rows.forEach((element) => {
+              total += parseInt(element.child_count);
+            });
+            result.rows.forEach((element) => {
+              element.avg = 0;
+              element.avg = ((parseInt(element.child_count) / total) * 100).toFixed(2);
+            });
+            callBack(null, result.rows);
+          }
+        });
       }
     });
+  },
+  getSevenDayGraph: async (sDate, sEndDate, candle, region, district, commune, fokontany, callBack) => {
+    try {
+      // VALID_DATE_FORMAT yyyy-mm-dd //
+      var lastSevenDates = getLastSevenDays(sDate);
+      var queryLastSevenData = `SELECT rf.*, cr.gender FROM registration_form rf INNER JOIN civil_register cr ON rf.mother_cr_id = cr.id
+      WHERE rf.dec_date >= '${sDate}' AND rf.dec_date <= '${sEndDate}'`;
+      if (!isNullOrEmpty(region)) {
+        queryLastSevenData += ` AND cr.code_region = '${region}'`;
+      }
+      if (!isNullOrEmpty(district)) {
+        queryLastSevenData += ` AND cr.code_district = '${district}'`;
+      }
+      if (!isNullOrEmpty(commune)) {
+        queryLastSevenData += ` AND cr.code_commune = '${commune}'`;
+      }
+      if (!isNullOrEmpty(fokontany)) {
+        queryLastSevenData += ` AND cr.code_fokontany = '${fokontany}'`;
+      }
 
-    function insertDec(valueToSearch, i) {
-      pool.query(`SELECT * FROM civil_register WHERE uin = '${valueToSearch}'`, (err, dbResult) => {
-        if (err) {
-          console.error(err);
-        } else {
-          if (dbResult.rows.length > 0) {
-            //console.log("fId:", dbResult.rows[0].id)
-            decId = res.rows[0].id;
-            //console.log(`Value '${valueToSearch}' exists in the database`);
-          } else {
-            const valuesToInsert = [result[i][48],
-            result[i][50],
-            result[i][51],
-            result[i][52]
-            ];
-
-            let query2 = "INSERT INTO civil_register (uin, given_name, date_of_birth, region_of_birth) VALUES ($1, $2, $3, $4) RETURNING id";
-
-            pool.query(query2, valuesToInsert, (err, res) => {
-              //console.log("error :", err);
-              //console.log("res :", res);
-              if (err) {
-                console.error(err);
-              } else {
-                //console.log("DId:", res.rows[0].id);
-                decId = res.rows[0].id;
-                //console.log("dic id :", decId);
-                //console.log(`Value '${valueToSearch}' does not exist in the database and has been inserted`);
-              }
-            });
-          }
-        }
+      var resultLastSevenData = await runSql(pool, queryLastSevenData, []);
+      var data = resultLastSevenData.rows.map((d) => {
+        return { ...d, dec_date: new Date(d.dec_date) };
       });
-    }
-
-    function insertFather(valueToSearch, i) {
-      pool.query(`SELECT * FROM civil_register WHERE uin = '${valueToSearch}'`, (err, dbResult) => {
-        if (err) {
-          console.error(err);
-        } else {
-          if (dbResult.rows.length > 0) {
-            //console.log("fId:", dbResult.rows[0].id)
-            fatherId = dbResult.rows[0].id;
-            valueToSearch = result[i][48];
-            insertDec(valueToSearch, i);
-            //console.log(`Value '${valueToSearch}' exists in the database`);
-          } else {
-            if (result[i][40] == "non") {
-              const valuesToInsert = [result[i][36],
-              result[i][38],
-              result[i][39],
-              result[i][42],
-              result[i][43],
-              result[i][44],
-              result[i][45],
-              result[i][46]
-              ];
-
-              let query2 = "INSERT INTO civil_register (uin, given_name, date_of_birth, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id";
-
-              pool.query(query2, valuesToInsert, (err, res) => {
-                if (err) {
-                  console.error(err);
-                } else {
-                  //console.log("fId:", res.rows[0].id)
-                  fatherId = res.rows[0].id;
-                  valueToSearch = result[i][48];
-                  insertDec(valueToSearch, i);
-                  //console.log(`Value '${valueToSearch}' does not exist in the database and has been inserted`);
-                }
-              });
-            } else {
-              const valuesToInsert = [result[i][36],
-              result[i][38],
-              result[i][39],
-              result[i][29],
-              result[i][30],
-              result[i][31],
-              result[i][32],
-              result[i][46]
-              ];
-
-              let query2 = "INSERT INTO civil_register (uin, given_name, date_of_birth, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id";
-
-              pool.query(query2, valuesToInsert, (err, res) => {
-                if (err) {
-                  console.error(err);
-                } else {
-                  //console.log("fId:", res.rows[0].id)
-                  fatherId = res.rows[0].id;
-                  //console.log(`Value '${valueToSearch}' does not exist in the database and has been inserted`);
-                }
-              });
-            }
-
-          }
-        }
+      var minuteDifference = parseInt((getMinuteDiff(sDate, sEndDate)) / candle);
+      var endDate = stringToDate(sEndDate);
+      var conditionStartDate = stringToDate(sDate);
+      var conditionEndDate = addMinutesToDate(stringToDate(sDate), minuteDifference);
+      var response = [];
+      var counter = 1;
+      while (conditionEndDate < endDate) {
+        var candleData = data.filter(item => item.dec_date >= conditionStartDate && item.dec_date <= conditionEndDate);
+        const centerDate = convertDateToString(getCenterDate(conditionStartDate, conditionEndDate));
+        response.push({
+          count: candleData.length,
+          date: convertDateToDDDD(centerDate),
+          quarterly: `Q${counter}`,
+          time: convertToTime(centerDate),
+          day: convertDateToDDD(centerDate),
+          month: convertDateToMMM(centerDate),
+        });
+        conditionStartDate = conditionEndDate;
+        conditionEndDate = addMinutesToDate(stringToDate(convertDateToString(conditionEndDate)), minuteDifference);
+        counter = counter + 1;
+      }
+      return callBack(null, {
+        total_count: response.reduce((acc, obj) => acc + obj.count, 0),
+        data_list: response
       });
+    } catch (error) {
+      return callBack(!isNullOrEmpty(error.message) ? error.message : error, null);
     }
-
   }
-  //-----------------------//
 };

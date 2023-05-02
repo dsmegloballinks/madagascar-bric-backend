@@ -214,7 +214,66 @@ module.exports = {
         str = str.slice(0, -1);
     }
     return str;
-  }
+  },
+  getMonthStartEnd: function (dateString) {
+    let [year, month] = dateString.split("-");
+    if(month == 1)
+    {
+      month = 12;
+      year = year - 1;
+    }
+    // Get the start of the month
+    const start = `${year}-${month}-01 00:00:00`;
   
+    // Get the end of the month
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const end = `${year}-${month}-${daysInMonth} 23:59:59`;
+  
+    return { start, end };
+  },
+  getLastYear: function (dateString) {
+    let [year, month] = dateString.split("-");
+    // Get the start of the month
+    const start = `${year-1}-01-01 00:00:00`;
+    const end = `${year-1}-12-01 23:59:59`;
+  
+    return { start, end };
+  },
+  getLastSevenDays: function (dateString) {
+    let [year, month, day] = dateString.split("-");
+    let newDateObject = new Date(dateString);
+    newDateObject = newDateObject.setDate(newDateObject.getDate() - 7);
+    newDateObject = new Date(newDateObject);
 
+    const start = `${newDateObject.getFullYear()}-${convertToD2(newDateObject.getMonth() + 1)}-${convertToD2(newDateObject.getDate())} 00:00:00`;
+    const end = `${year}-${month}-${day} 23:59:59`;
+    return { start, end };
+  },
+  convertToD2,
+  getMinuteDiff,
+  addMinutesToDate,
+  stringToDate
+}
+function convertToD2(sN)
+{
+  sN = `00${sN}`;
+  return sN.substring(sN.length - 2, sN.length);
+}
+
+function getMinuteDiff(dateString1, dateString2) {
+  const date1 = new Date(dateString1);
+  const date2 = new Date(dateString2);
+  const diffInMs = date2.getTime() - date1.getTime();
+  return Math.floor(diffInMs / 1000 / 60);
+}
+
+function addMinutesToDate(date, minutesToAdd) {
+  return new Date(date.setMinutes(date.getMinutes() + minutesToAdd));
+}
+
+function stringToDate(dateString)
+{
+  var date_ = Date.parse(dateString)
+  var finalDate =  new Date(date_)
+  return finalDate;
 }

@@ -10,7 +10,8 @@ const {
   saveFileToDatabase,
   getChildCount,
   getAllFokontany,
-  Dashboard
+  Dashboard,
+  getSevenDayGraph
 } = require("./civil_register.controller");
 const Paths = require("../../helper/constants/Paths");
 
@@ -33,6 +34,7 @@ router.post('/convert', upload, convertFile);
 router.get('/get-child-count', getChildCount);
 router.get("/get-fokontany", getAllFokontany);
 router.get("/dashboard", Dashboard);
+router.get("/get-seven-day-graph", getSevenDayGraph);
 router.get("/get-all", getAll);
 router.post("/create", create);
 router.patch("/update", update);

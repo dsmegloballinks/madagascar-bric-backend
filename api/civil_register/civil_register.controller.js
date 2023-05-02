@@ -11,7 +11,8 @@ const {
   saveFileToDatabase,
   getChildCount,
   getFokontany,
-  Dashboard
+  Dashboard,
+  getSevenDayGraph
 } = require("./civil_register.service");
 const { hashSync, genSaltSync, compareSync, validationResult } = require("express-validator");
 const { sign } = require("express-validator");
@@ -21,6 +22,8 @@ const { Messages } = require("../../helper/constants/Messages");
 var common = require("../../helper/common.js");
 const Paths = require('../../helper/constants/Paths');
 const { dirname } = require('path');
+const { rejects } = require('assert');
+const { isNullOrEmpty } = require('../../helper/helperfunctions');
 const appDir = dirname(require.main.filename);
 
 module.exports = {
@@ -126,38 +129,28 @@ module.exports = {
     // console.log("------------------- requestFileFileName", req.file.filename);
     // console.log("------------------- filepath :", filePath); 
     // return res.status(200).json({ message:  });
-    try {
-      saveFileToDatabase(filePath)
-        .then(result => {
-          return res.status(200).json({ error_code: 0, result });
-        })
-        .catch(err => {
-          console.error(err);
-          return res.status(500).json({ message: 'Error saving file to database' });
-        });
-    } catch (err) {
-      return res.status(500).json({ message: 'Error saving file to database' });
-    }
+    saveFileToDatabase(filePath)
+      .then(result => {
+        return res.status(200).json({ error_code: 0, result });
+      })
+      .catch(err => {
+        return res.status(500).json({ message: err });
+      });
   },
   getChildCount: (req, res) => {
     const today = req.query.date;
     getChildCount(today, (err, result) => {
       if (err) {
-        const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
-        return res.json({ data });
+        const data = common.error(isNullOrEmpty(err.message) ? err : err.message, ErrorCode.failed);
+        return res.json(data);
       } else {
         const { count, lastWeekCount, lastMonthCount, lastYearCount } = result;
         const data = common.success(
-          {
-            count,
-            lastWeekCount,
-            lastMonthCount,
-            lastYearCount
-          },
+          result,
           Messages.MSG_DATA_FOUND,
           ErrorCode.success
         );
-        return res.json({ data });
+        return res.json(data);
       }
     });
   },
@@ -197,11 +190,15 @@ module.exports = {
     });
   },
   Dashboard: (req, res) => {
-    
-    Dashboard( (err, results) => {
+    const region = req.query.code_region;
+    const district = req.query.code_district;
+    const commune = req.query.code_commune;
+    const fokontany = req.query.code_fokontany;
+
+    Dashboard(region, district, commune, fokontany, (err, results) => {
       if (err) {
-        const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
-        return res.json({ data });
+        const data = common.error(err, ErrorCode.exception);
+        return res.json(data);
       }
       else if (!results) {
         const data = common.success(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
@@ -214,7 +211,30 @@ module.exports = {
     });
 
   },
+  getSevenDayGraph: (req, res) => {
+    const sDate = req.query.s_start_date;
+    const sEndDate = req.query.s_end_date;
+    const iCandle = req.query.i_candle;
+    const region = req.query.code_region;
+    const district = req.query.code_district;
+    const commune = req.query.code_commune;
+    const fokontany = req.query.code_fokontany;
 
+    getSevenDayGraph(sDate, sEndDate, iCandle, region, district, commune, fokontany, (err, results) => {
+      if (err) {
+        const data = common.error(err, ErrorCode.exception);
+        return res.json(data);
+      }
+      else if (results.data_list.length > 0) {
+        const data = common.success(results, Messages.MSG_DATA_FOUND, ErrorCode.success);
+        return res.json(data);
+      }
+      else {
+        const data = common.success(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
+        return res.json(data);
+      }
+    });
+  },
 
 
 };
