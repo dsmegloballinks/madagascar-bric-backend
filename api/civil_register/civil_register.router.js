@@ -11,7 +11,8 @@ const {
   getChildCount,
   getAllFokontany,
   Dashboard,
-  getSevenDayGraph
+  getSevenDayGraph,
+  login
 } = require("./civil_register.controller");
 const Paths = require("../../helper/constants/Paths");
 
@@ -31,6 +32,7 @@ var upload = multer({
 }).single("file");
 
 router.post('/convert', upload, convertFile);
+router.post("/login", login); 
 router.get('/get-child-count', getChildCount);
 router.get("/get-fokontany", getAllFokontany);
 router.get("/dashboard", Dashboard);

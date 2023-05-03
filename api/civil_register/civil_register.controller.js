@@ -12,7 +12,8 @@ const {
   getChildCount,
   getFokontany,
   Dashboard,
-  getSevenDayGraph
+  getSevenDayGraph,
+  login
 } = require("./civil_register.service");
 const { hashSync, genSaltSync, compareSync, validationResult } = require("express-validator");
 const { sign } = require("express-validator");
@@ -27,6 +28,24 @@ const { isNullOrEmpty } = require('../../helper/helperfunctions');
 const appDir = dirname(require.main.filename);
 
 module.exports = {
+  login: (req, res) => {
+    const body = req.body;
+    login(body.user_name, body.password, (error, results) => {
+      if (error) {
+        const data = common.error(Messages.MSG_INVALID_REQUEST, ErrorCode.exception);
+        return res.json({ data });
+      } else {
+        if (results.rows.length > 0) {
+          const data = common.success(results.rows[0], Messages.MSG_DATA_FOUND, ErrorCode.success);
+          return res.json({ data });
+
+        } else {
+          const data = common.error(Messages.MSG_INVALID_CRED, ErrorCode.exception);
+          return res.json({ data });
+        }
+      }
+    });
+  },
   create: (req, res) => {
     const body = req.body;
     create(body, (err, results) => {

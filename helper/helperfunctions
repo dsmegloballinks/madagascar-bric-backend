@@ -117,8 +117,8 @@ module.exports = {
     const isoString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`;
     return isoString;
   },
-  runSql: (pool, query, values) => {
-    return new Promise((resolve, reject) => {
+  runSql: async (pool, query, values) => {
+    return await new Promise((resolve, reject) => {
       pool.query(query, values, (error, results) => {
         if (error) {
           reject(error);
@@ -189,7 +189,7 @@ module.exports = {
   readFiles(filePath) {
     let result = [];
     let extension = filePath.split('.').pop();
-  
+
     if (extension === 'xls' || extension === 'xlsx') {
       let workbook = xlsx.readFile(filePath);
       let sheetName = workbook.SheetNames[0];
@@ -208,35 +208,37 @@ module.exports = {
     console.log(readFiles('example.csv'));
     return result;
   },
-  removeCommaAtEnd(str){
+  removeCommaAtEnd(str) {
     var lastChar = str.slice(-1);
     if (lastChar == ',') {
-        str = str.slice(0, -1);
+      str = str.slice(0, -1);
     }
     return str;
   },
   getMonthStartEnd: function (dateString) {
     let [year, month] = dateString.split("-");
-    if(month == 1)
-    {
+    if (month == 1) {
       month = 12;
       year = year - 1;
     }
+    else {
+      month = month - 1;
+    }
     // Get the start of the month
     const start = `${year}-${month}-01 00:00:00`;
-  
+
     // Get the end of the month
     const daysInMonth = new Date(year, month, 0).getDate();
     const end = `${year}-${month}-${daysInMonth} 23:59:59`;
-  
+
     return { start, end };
   },
   getLastYear: function (dateString) {
     let [year, month] = dateString.split("-");
     // Get the start of the month
-    const start = `${year-1}-01-01 00:00:00`;
-    const end = `${year-1}-12-01 23:59:59`;
-  
+    const start = `${year - 1}-01-01 00:00:00`;
+    const end = `${year - 1}-12-01 23:59:59`;
+
     return { start, end };
   },
   getLastSevenDays: function (dateString) {
@@ -252,10 +254,11 @@ module.exports = {
   convertToD2,
   getMinuteDiff,
   addMinutesToDate,
-  stringToDate
+  stringToDate,
+  formatDate,
+  getLastDates
 }
-function convertToD2(sN)
-{
+function convertToD2(sN) {
   sN = `00${sN}`;
   return sN.substring(sN.length - 2, sN.length);
 }
@@ -271,9 +274,33 @@ function addMinutesToDate(date, minutesToAdd) {
   return new Date(date.setMinutes(date.getMinutes() + minutesToAdd));
 }
 
-function stringToDate(dateString)
-{
+function stringToDate(dateString) {
   var date_ = Date.parse(dateString)
-  var finalDate =  new Date(date_)
+  var finalDate = new Date(date_)
   return finalDate;
+}
+
+function formatDate(inputDate) {
+  const date = new Date(inputDate);
+  const year = date.getFullYear().toString();
+  let month = (date.getMonth() + 1).toString();
+  if (month.length < 2) {
+    month = '0' + month;
+  }
+  let day = date.getDate().toString();
+  if (day.length < 2) {
+    day = '0' + day;
+  }
+  return year + '-' + month + '-' + day;
+}
+
+function getLastDates(dateString, days) {
+  let [year, month, day] = dateString.split("-");
+  let newDateObject = new Date(dateString);
+  newDateObject = newDateObject.setDate(newDateObject.getDate() - days);
+  newDateObject = new Date(newDateObject);
+
+  const start = `${newDateObject.getFullYear()}-${convertToD2(newDateObject.getMonth() + 1)}-${convertToD2(newDateObject.getDate())} 00:00:00`;
+  const end = `${year}-${month}-${day} 23:59:59`;
+  return { start, end };
 }
