@@ -13,7 +13,8 @@ const {
   Dashboard,
   getSevenDayGraph,
   login,
-  getLatLong
+  getLatLong,
+  getSevenDayGraphQuery
 } = require("./civil_register.controller");
 const Paths = require("../../helper/constants/Paths");
 
@@ -43,5 +44,6 @@ router.post("/create", create);
 router.patch("/update", update);
 router.post("/delete", deleteById);
 router.get("/get-lat-long", getLatLong);
+router.get("/get-seven-day-graph-query", getSevenDayGraphQuery);
 
 module.exports = router;

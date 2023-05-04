@@ -26,6 +26,8 @@ const { convertDateToMMM } = require("../../helper/helperfunctions");
 const { formatDate } = require("../../helper/helperfunctions");
 const { getLastDates } = require("../../helper/helperfunctions");
 const { where } = require("sequelize");
+const { convertDateToStringMoment } = require("../../helper/helperfunctions");
+const { getCenterDateMoment } = require("../../helper/helperfunctions");
 
 
 let fatherId;
@@ -80,7 +82,7 @@ module.exports = {
   getAll: async (page, limit, region, district, commune, fokontany, callback) => {
     try {
       const offset = (page - 1) * limit;
-      let query = `SELECT DISTINCT cr.*, rf.child_cr_id, mother.id as mother_cr_id, father_cr_id, declarant_cr_id FROM civil_register cr JOIN registration_form rf ON cr.id = rf.child_cr_id JOIN civil_register mother ON mother.id = rf.mother_cr_id `;
+      let query = `SELECT DISTINCT cr.*, rf.child_cr_id, rf,dec_date, rf.transcription_date, rf.lattitude, rf. longitude, mother.id as mother_cr_id, father_cr_id, declarant_cr_id FROM civil_register cr JOIN registration_form rf ON cr.id = rf.child_cr_id JOIN civil_register mother ON mother.id = rf.mother_cr_id `;
       var countQuery = `SELECT COUNT(DISTINCT cr.id) AS total_records 
       FROM civil_register cr
       JOIN registration_form rf ON cr.id = rf.child_cr_id 
@@ -354,6 +356,8 @@ module.exports = {
               var lattitude = resultCopy[indexChildFileData][68];
               var longitude = resultCopy[indexChildFileData][69];
               var declarantId = delarantsInfo[indexDeclarant].id;
+              
+              console.log("formatDate(resultCopy[indexChildFileData][7])", formatDate(resultCopy[indexChildFileData][7]));
               queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${resultCopy[indexChildFileData][47]}','${formatDate(resultCopy[indexChildFileData][7])}','${formatDate(resultCopy[indexChildFileData][8])}','${resultCopy[indexChildFileData][53]}','${resultCopy[indexChildFileData][53]}','${lattitude}','${longitude}'),`
             }
           }
@@ -446,19 +450,19 @@ module.exports = {
     const filterValues = [];
 
     if (!isNullOrEmpty(region)) {
-      filterConditions.push(`code_region = $${filterValues.length + 1}`);
+      filterConditions.push(`region_of_birth = $${filterValues.length + 1}`);
       filterValues.push(region);
     }
     if (!isNullOrEmpty(district)) {
-      filterConditions.push(`code_district = $${filterValues.length + 1}`);
+      filterConditions.push(`district_of_birth = $${filterValues.length + 1}`);
       filterValues.push(district);
     }
     if (!isNullOrEmpty(commune)) {
-      filterConditions.push(`code_commune = $${filterValues.length + 1}`);
+      filterConditions.push(`commune_of_birth = $${filterValues.length + 1}`);
       filterValues.push(commune);
     }
     if (!isNullOrEmpty(fokontany)) {
-      filterConditions.push(`code_fokontany = $${filterValues.length + 1}`);
+      filterConditions.push(`fokontany_of_birth = $${filterValues.length + 1}`);
       filterValues.push(fokontany);
     }
 
@@ -519,7 +523,7 @@ module.exports = {
       // VALID_DATE_FORMAT yyyy-mm-dd //
       var lastSevenDates = getLastSevenDays(sDate);
       var queryLastSevenData = `SELECT rf.*, cr.gender FROM registration_form rf INNER JOIN civil_register cr ON rf.mother_cr_id = cr.id
-      WHERE rf.dec_date >= '${sDate}' AND rf.dec_date <= '${sEndDate}'`;
+      WHERE DATE(rf.dec_date) >= '${sDate}' AND DATE(rf.dec_date) <= '${sEndDate}'`;
       if (!isNullOrEmpty(region)) {
         queryLastSevenData += ` AND cr.region_of_birth = '${region}'`;
       }
@@ -545,7 +549,7 @@ module.exports = {
       var counter = 1;
       while (conditionEndDate <= endDate) {
         var candleData = data.filter(item => item.dec_date >= conditionStartDate && item.dec_date <= conditionEndDate);
-        const centerDate = convertDateToString(getCenterDate(conditionStartDate, conditionEndDate));
+        const centerDate = convertDateToStringMoment(getCenterDateMoment(conditionStartDate, conditionEndDate));
         response.push({
           count: candleData.length,
           date: convertDateToDDDD(centerDate),
@@ -555,7 +559,7 @@ module.exports = {
           month: convertDateToMMM(centerDate),
         });
         conditionStartDate = conditionEndDate;
-        conditionEndDate = addMinutesToDate(stringToDate(convertDateToString(conditionEndDate)), minuteDifference);
+        conditionEndDate = addMinutesToDate(conditionEndDate, minuteDifference);
         counter = counter + 1;
       }
       return callBack(null, {
@@ -574,5 +578,10 @@ module.exports = {
     } catch (error) {
       return callBack(error, null);
     }
+  },
+  getSevenDayGraphQuery: (callBack) => {
+    var lastSevenDates = getLastDates("2023-05-04", 7);
+    var queryLastSevenData = `SELECT count(child_cr_id) FROM registration_form where dec_date >= '${lastSevenDates.start}' and dec_date <= '${lastSevenDates.end}'`;
+    return callBack(null, queryLastSevenData);
   }
 };

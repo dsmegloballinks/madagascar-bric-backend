@@ -6,6 +6,7 @@ const nodemailer = require('nodemailer');
 const xlsx = require('xlsx');
 const csv = require('csv-parser');
 const fs = require('fs');
+const moment = require("moment/moment");
 
 module.exports = {
   generateCode: function () {
@@ -83,6 +84,13 @@ module.exports = {
     const centerDate = new Date(centerTimestamp);
     return centerDate;
   },
+  getCenterDateMoment: function (date1, date2) {
+    let date1Moment = moment(date1);
+    let date2Moment = moment(date2);
+    let diff = date2Moment.diff(date1Moment, 'minutes');
+    let midTime = date1Moment.add(diff/2, 'minutes');
+    return midTime;
+  },
   convertDateToDDDD: function (date) {
     let dateTime = new Date(date);
     let options = { weekday: 'long', month: 'numeric', day: 'numeric', year: 'numeric' };
@@ -116,6 +124,9 @@ module.exports = {
 
     const isoString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`;
     return isoString;
+  },
+  convertDateToStringMoment: function (date) {
+    return moment(date).format("YYYY-MM-DD HH:mm:ss");
   },
   runSql: async (pool, query, values) => {
     return await new Promise((resolve, reject) => {
@@ -264,43 +275,52 @@ function convertToD2(sN) {
 }
 
 function getMinuteDiff(dateString1, dateString2) {
-  const date1 = new Date(dateString1);
-  const date2 = new Date(dateString2);
-  const diffInMs = date2.getTime() - date1.getTime();
-  return Math.floor(diffInMs / 1000 / 60);
+  let date1 = moment(dateString1);
+  let date2 = moment(dateString2);
+  // const diffInMs = date2.getTime() - date1.getTime();
+  return date2.diff(date1, 'minutes');
 }
 
 function addMinutesToDate(date, minutesToAdd) {
-  return new Date(date.setMinutes(date.getMinutes() + minutesToAdd));
+  return moment(date).add({ minutes: minutesToAdd })
+  // return new Date(date.setMinutes(date.getMinutes() + minutesToAdd));
 }
 
 function stringToDate(dateString) {
-  var date_ = Date.parse(dateString)
-  var finalDate = new Date(date_)
+  let finalDate = moment(dateString);
   return finalDate;
 }
 
 function formatDate(inputDate) {
-  const date = new Date(inputDate);
-  const year = date.getFullYear().toString();
-  let month = (date.getMonth() + 1).toString();
-  if (month.length < 2) {
-    month = '0' + month;
+  try {
+    const date = new Date(inputDate);
+    const year = date.getFullYear().toString();
+    let month = (date.getMonth() + 1).toString();
+    if (month.length < 2) {
+      month = '0' + month;
+    }
+    let day = date.getDate().toString();
+    if (day.length < 2) {
+      day = '0' + day;
+    }
+    return year + '-' + month + '-' + day;
+  } catch (error) {
+    console.log(error);
   }
-  let day = date.getDate().toString();
-  if (day.length < 2) {
-    day = '0' + day;
-  }
-  return year + '-' + month + '-' + day;
 }
 
 function getLastDates(dateString, days) {
   let [year, month, day] = dateString.split("-");
-  let newDateObject = new Date(dateString);
-  newDateObject = newDateObject.setDate(newDateObject.getDate() - days);
-  newDateObject = new Date(newDateObject);
 
-  const start = `${newDateObject.getFullYear()}-${convertToD2(newDateObject.getMonth() + 1)}-${convertToD2(newDateObject.getDate())} 00:00:00`;
+  let newDateObject = moment(dateString).subtract({ hours: new Date().getTimezoneOffset() / 60 })
+  // newDateObject = addMinutesToDate(newDateObject, new Date().getTimezoneOffset());
+  // var currentZoneDifference = process.env.TIME_ZONE * 60;
+  // newDateObject = addMinutesToDate(newDateObject, currentZoneDifference);
+  newDateObject = moment(dateString).subtract({ days: days });
+
+  // newDateObject = newDateObject.setDate(newDateObject.getDate() - days);
+  //  newDateObject = new Date(newDateObject);
+  const start = `${newDateObject.year()}-${convertToD2(newDateObject.month() + 1)}-${convertToD2(newDateObject.date())} 00:00:00`;
   const end = `${year}-${month}-${day} 23:59:59`;
   return { start, end };
 }

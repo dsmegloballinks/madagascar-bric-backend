@@ -14,7 +14,8 @@ const {
   Dashboard,
   getSevenDayGraph,
   login,
-  GetLatLong
+  GetLatLong,
+  getSevenDayGraphQuery
 } = require("./civil_register.service");
 const { hashSync, genSaltSync, compareSync, validationResult } = require("express-validator");
 const { sign } = require("express-validator");
@@ -271,6 +272,11 @@ module.exports = {
         const data = common.success(results, Messages.MSG_DATA_FOUND, ErrorCode.exist);
         return res.json({ data });
       }
+    });
+  },
+  getSevenDayGraphQuery: (req, res) => {
+    getSevenDayGraphQuery((err, result) => {
+      return res.json(result);
     });
   }
 
