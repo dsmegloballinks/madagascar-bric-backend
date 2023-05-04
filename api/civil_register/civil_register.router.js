@@ -12,7 +12,8 @@ const {
   getAllFokontany,
   Dashboard,
   getSevenDayGraph,
-  login
+  login,
+  getLatLong
 } = require("./civil_register.controller");
 const Paths = require("../../helper/constants/Paths");
 
@@ -32,7 +33,7 @@ var upload = multer({
 }).single("file");
 
 router.post('/convert', upload, convertFile);
-router.post("/login", login); 
+router.post("/login", login);
 router.get('/get-child-count', getChildCount);
 router.get("/get-fokontany", getAllFokontany);
 router.get("/dashboard", Dashboard);
@@ -41,5 +42,6 @@ router.get("/get-all", getAll);
 router.post("/create", create);
 router.patch("/update", update);
 router.post("/delete", deleteById);
+router.get("/get-lat-long", getLatLong);
 
 module.exports = router;

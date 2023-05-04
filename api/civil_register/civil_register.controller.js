@@ -13,7 +13,8 @@ const {
   getFokontany,
   Dashboard,
   getSevenDayGraph,
-  login
+  login,
+  GetLatLong
 } = require("./civil_register.service");
 const { hashSync, genSaltSync, compareSync, validationResult } = require("express-validator");
 const { sign } = require("express-validator");
@@ -92,7 +93,11 @@ module.exports = {
     if (req.query.limit) {
       limit = req.query.limit
     }
-    getAll(page, limit, (err, results) => {
+    const region = req.query.code_region;
+    const district = req.query.code_district;
+    const commune = req.query.code_commune;
+    const fokontany = req.query.code_fokontany;
+    getAll(page, limit, region, district, commune, fokontany, (err, results) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });
@@ -254,6 +259,20 @@ module.exports = {
       }
     });
   },
+  getLatLong: (req, res) => {
+    GetLatLong((err, results) => {
+      if (err) {
+        const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+        return res.json({ data });
+      } else if (results.length === 0) {
+        const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
+        return res.json({ data });
+      } else {
+        const data = common.success(results, Messages.MSG_DATA_FOUND, ErrorCode.exist);
+        return res.json({ data });
+      }
+    });
+  }
 
 
 };

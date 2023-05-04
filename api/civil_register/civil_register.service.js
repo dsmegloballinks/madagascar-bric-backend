@@ -25,6 +25,7 @@ const { convertDateToDDD } = require("../../helper/helperfunctions");
 const { convertDateToMMM } = require("../../helper/helperfunctions");
 const { formatDate } = require("../../helper/helperfunctions");
 const { getLastDates } = require("../../helper/helperfunctions");
+const { where } = require("sequelize");
 
 
 let fatherId;
@@ -76,65 +77,86 @@ module.exports = {
       }
     );
   },
-  getAll: async (page, limit, callback, region, district, commune, fokontany) => {
-    const offset = (page - 1) * limit;
-    const query = `
-      SELECT DISTINCT cr.*, rf.child_cr_id, mother.id as mother_cr_id, father_cr_id, declarant_cr_id
-      FROM civil_register cr
-      JOIN registration_form rf ON cr.id = rf.child_cr_id
-      JOIN civil_register mother ON mother.id = rf.mother_cr_id
-      ORDER BY cr.id
-      LIMIT ${limit}
-      OFFSET ${offset};
-      SELECT COUNT(DISTINCT cr.id) AS total_records 
+  getAll: async (page, limit, region, district, commune, fokontany, callback) => {
+    try {
+      const offset = (page - 1) * limit;
+      let query = `SELECT DISTINCT cr.*, rf.child_cr_id, mother.id as mother_cr_id, father_cr_id, declarant_cr_id FROM civil_register cr JOIN registration_form rf ON cr.id = rf.child_cr_id JOIN civil_register mother ON mother.id = rf.mother_cr_id `;
+      var countQuery = `SELECT COUNT(DISTINCT cr.id) AS total_records 
       FROM civil_register cr
       JOIN registration_form rf ON cr.id = rf.child_cr_id 
-      JOIN civil_register mother ON mother.id = rf.mother_cr_id        
-    `;
-    var results = await runSql(pool, query, []);
-    const allResult = [];
-    for (let x = 0; x < results[0].rows.length; x++) {
-      const motherQuery = `SELECT * FROM civil_register where id = ${results[0].rows[x].mother_cr_id}`;
-      var motherResults = await runSql(pool, motherQuery, []);
-      const fatherQuery = `SELECT * FROM civil_register where id = ${results[0].rows[x].father_cr_id}`;
-      var fatherResults = await runSql(pool, fatherQuery, []);
-      const DecQuery = `SELECT * FROM civil_register where id = ${results[0].rows[x].declarant_cr_id}`;
-      var DecResults = await runSql(pool, DecQuery, []);
-      var SQuery = `SELECT libelle_fokontany AS Fokontonay_Name, libelle_commune AS Commune_name from fokontany where id = ${results[0].rows[x].id} `;
-      var resultQuery = await runSql(pool, SQuery, []);
-      const record = {
-        cr: results[0].rows[x],
-        mother: motherResults.rows[0],
-        father: fatherResults.rows[0],
-        declarant: DecResults.rows[0],
-        foko: resultQuery.rows[0],
-      };
-      allResult.push(record);
-      if (allResult.length === results[0].rows.length) {
-        for (let index = 0; index < allResult.length; index++) {
-          const element = allResult[index];
-          let crNameArray =  element.cr.given_name.split(" ");
-          element.cr.first_name = crNameArray[0] 
-          element.cr.last_name = crNameArray[crNameArray.length - 1] 
-
-          let motherNameArray =  element.mother.given_name.split(" ");
-          element.mother.first_name = motherNameArray[0] 
-          element.mother.last_name = motherNameArray[motherNameArray.length - 1] 
-
-          let fatherNameArray =  element.father.given_name.split(" ");
-          element.father.first_name = fatherNameArray[0] 
-          element.father.last_name = fatherNameArray[fatherNameArray.length - 1] 
-
-          let declarantNameArray =  element.declarant.given_name.split(" ");
-          element.declarant.first_name = declarantNameArray[0] 
-          element.declarant.last_name = declarantNameArray[declarantNameArray.length - 1] 
-        }
-        const data = {
-          results: allResult,
-          total_records: results[1].rows[0].total_records,
-        };
-        return callback(null, data);
+      JOIN civil_register mother ON mother.id = rf.mother_cr_id`;
+      var whereClause = " where 1=1 ";
+      if (!isNullOrEmpty(region)) {
+        whereClause += ` AND cr.region_of_birth = '${region}'`;
       }
+      if (!isNullOrEmpty(district)) {
+        whereClause += ` AND cr.district_of_birth = '${district}'`;
+      }
+      if (!isNullOrEmpty(commune)) {
+        whereClause += ` AND cr.commune_of_birth = '${commune}'`;
+      }
+      if (!isNullOrEmpty(fokontany)) {
+        whereClause += ` AND cr.fokontany_of_birth = '${fokontany}'`;
+      }
+      query += whereClause;
+      query += ` ORDER BY cr.id LIMIT ${limit} OFFSET ${offset}`;
+      countQuery += whereClause;
+      var results = await runSql(pool, query, []);
+      const allResult = [];
+      // var resultCount = isNullOrEmpty(results.rowsl) ? 0 : results[0].rows.length;
+      var resultCount = results.rows.length;
+      if (resultCount == 0) {
+        return callback(null, {
+          results: [],
+          total_records: 0
+        });
+      }
+      for (let x = 0; x < resultCount; x++) {
+        const motherQuery = `SELECT * FROM civil_register where id = ${results.rows[x].mother_cr_id}`;
+        var motherResults = await runSql(pool, motherQuery, []);
+        const fatherQuery = `SELECT * FROM civil_register where id = ${results.rows[x].father_cr_id}`;
+        var fatherResults = await runSql(pool, fatherQuery, []);
+        const DecQuery = `SELECT * FROM civil_register where id = ${results.rows[x].declarant_cr_id}`;
+        var DecResults = await runSql(pool, DecQuery, []);
+        var SQuery = `SELECT libelle_fokontany AS Fokontonay_Name, libelle_commune AS Commune_name from fokontany where id = ${results.rows[x].id} `;
+        var resultQuery = await runSql(pool, SQuery, []);
+        const record = {
+          cr: results.rows[x],
+          mother: motherResults.rows[0],
+          father: fatherResults.rows[0],
+          declarant: DecResults.rows[0],
+          foko: resultQuery.rows[0],
+        };
+        allResult.push(record);
+        if (allResult.length === results.rows.length) {
+          for (let index = 0; index < allResult.length; index++) {
+            const element = allResult[index];
+            let crNameArray = element.cr.given_name.split(" ");
+            element.cr.first_name = crNameArray[0]
+            element.cr.last_name = crNameArray[crNameArray.length - 1]
+
+            let motherNameArray = element.mother.given_name.split(" ");
+            element.mother.first_name = motherNameArray[0]
+            element.mother.last_name = motherNameArray[motherNameArray.length - 1]
+
+            let fatherNameArray = element.father.given_name.split(" ");
+            element.father.first_name = fatherNameArray[0]
+            element.father.last_name = fatherNameArray[fatherNameArray.length - 1]
+
+            let declarantNameArray = element.declarant.given_name.split(" ");
+            element.declarant.first_name = declarantNameArray[0]
+            element.declarant.last_name = declarantNameArray[declarantNameArray.length - 1]
+          }
+          countQueryResult = await runSql(pool, countQuery, []);
+          const data = {
+            results: allResult,
+            total_records: countQueryResult.rows[0].total_records,
+          };
+          return callback(null, data);
+        }
+      }
+    } catch (error) {
+      return callback(error, null);
     }
   },
   update: (data, file, callBack) => {
@@ -225,13 +247,13 @@ module.exports = {
           } catch (error) {
             reject("error file reading file for data gathering ")
           }
-          
+
 
           var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth) VALUES";
           for (let i = 1; i < result.length; i++) {
             let name = "";
-          if (!isNullOrEmpty(result[i][9]) && !isNullOrEmpty(result[i][10]))
-            name = result[i][10] + " " + result[i][9];
+            if (!isNullOrEmpty(result[i][9]) && !isNullOrEmpty(result[i][10]))
+              name = result[i][10] + " " + result[i][9];
             if (isNullOrEmpty(result[i][6])) { result[i][6] = null; }
             // if (isNullOrEmpty(result[i][9])) { result[i][9] = null; }
             if (isNullOrEmpty(result[i][10])) { result[i][10] = null; }
@@ -319,7 +341,7 @@ module.exports = {
           var delarantsInfo = resultCivilRegisterInsertDeclarant.rows;
 
           var resultCopy = result.splice(1, result.length - 1);
-          var queryRegistrationFormInsert = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, dec_sign, in_charge_sign) VALUES";
+          var queryRegistrationFormInsert = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, dec_sign, in_charge_sign, lattitude, longitude ) VALUES";
           for (let i = 0; i < childsInfo.length; i++) {
             const childInfo = childsInfo[i];
             let indexChildFileData = resultCopy.findIndex(element => element[6] == childInfo.uin);
@@ -329,8 +351,10 @@ module.exports = {
               var indexDeclarant = delarantsInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][48]);
               var fatherId = fathersInfo[indexFather].id;
               var motherId = mothersInfo[indexMother].id;
+              var lattitude = resultCopy[indexChildFileData][68];
+              var longitude = resultCopy[indexChildFileData][69];
               var declarantId = delarantsInfo[indexDeclarant].id;
-              queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${resultCopy[indexChildFileData][47]}','${formatDate(resultCopy[indexChildFileData][7])}','${formatDate(resultCopy[indexChildFileData][8])}','${resultCopy[indexChildFileData][53]}','${resultCopy[indexChildFileData][53]}'),`
+              queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${resultCopy[indexChildFileData][47]}','${formatDate(resultCopy[indexChildFileData][7])}','${formatDate(resultCopy[indexChildFileData][8])}','${resultCopy[indexChildFileData][53]}','${resultCopy[indexChildFileData][53]}','${lattitude}','${longitude}'),`
             }
           }
           queryRegistrationFormInsert = removeCommaAtEnd(queryRegistrationFormInsert);
@@ -497,16 +521,16 @@ module.exports = {
       var queryLastSevenData = `SELECT rf.*, cr.gender FROM registration_form rf INNER JOIN civil_register cr ON rf.mother_cr_id = cr.id
       WHERE rf.dec_date >= '${sDate}' AND rf.dec_date <= '${sEndDate}'`;
       if (!isNullOrEmpty(region)) {
-        queryLastSevenData += ` AND cr.code_region = '${region}'`;
+        queryLastSevenData += ` AND cr.region_of_birth = '${region}'`;
       }
       if (!isNullOrEmpty(district)) {
-        queryLastSevenData += ` AND cr.code_district = '${district}'`;
+        queryLastSevenData += ` AND cr.district_of_birth = '${district}'`;
       }
       if (!isNullOrEmpty(commune)) {
-        queryLastSevenData += ` AND cr.code_commune = '${commune}'`;
+        queryLastSevenData += ` AND cr.commune_of_birth = '${commune}'`;
       }
       if (!isNullOrEmpty(fokontany)) {
-        queryLastSevenData += ` AND cr.code_fokontany = '${fokontany}'`;
+        queryLastSevenData += ` AND cr.fokontany_of_birth = '${fokontany}'`;
       }
 
       var resultLastSevenData = await runSql(pool, queryLastSevenData, []);
@@ -519,7 +543,7 @@ module.exports = {
       var conditionEndDate = addMinutesToDate(stringToDate(sDate), minuteDifference);
       var response = [];
       var counter = 1;
-      while (conditionEndDate < endDate) {
+      while (conditionEndDate <= endDate) {
         var candleData = data.filter(item => item.dec_date >= conditionStartDate && item.dec_date <= conditionEndDate);
         const centerDate = convertDateToString(getCenterDate(conditionStartDate, conditionEndDate));
         response.push({
@@ -540,6 +564,15 @@ module.exports = {
       });
     } catch (error) {
       return callBack(!isNullOrEmpty(error.message) ? error.message : error, null);
+    }
+  },
+  GetLatLong: async (callBack) => {
+    try {
+      var mapQuery = 'SELECT r.lattitude, r.longitude, r.id, c.given_name FROM registration_form r JOIN civil_register c ON r.child_cr_id = c.id';
+      var mapQueryResult = await runSql(pool, mapQuery, [])
+      return callBack(null, mapQueryResult.rows);
+    } catch (error) {
+      return callBack(error, null);
     }
   }
 };
