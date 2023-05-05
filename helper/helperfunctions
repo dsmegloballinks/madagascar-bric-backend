@@ -275,35 +275,38 @@ function convertToD2(sN) {
 }
 
 function getMinuteDiff(dateString1, dateString2) {
-  let date1 = moment(dateString1);
-  let date2 = moment(dateString2);
+  let date1 = moment.utc(dateString1);
+  let date2 = moment.utc(dateString2);
   // const diffInMs = date2.getTime() - date1.getTime();
   return date2.diff(date1, 'minutes');
 }
 
 function addMinutesToDate(date, minutesToAdd) {
-  return moment(date).add({ minutes: minutesToAdd })
+  return moment.utc(date).add({ minutes: minutesToAdd }).format("YYYY-MM-DD")
   // return new Date(date.setMinutes(date.getMinutes() + minutesToAdd));
 }
 
 function stringToDate(dateString) {
-  let finalDate = moment(dateString);
+  let finalDate = moment(dateString).format("YYYY-MM-DD");
   return finalDate;
 }
 
 function formatDate(inputDate) {
   try {
-    const date = new Date(inputDate);
-    const year = date.getFullYear().toString();
-    let month = (date.getMonth() + 1).toString();
-    if (month.length < 2) {
-      month = '0' + month;
-    }
-    let day = date.getDate().toString();
-    if (day.length < 2) {
-      day = '0' + day;
-    }
-    return year + '-' + month + '-' + day;
+
+    let t = moment.utc(inputDate).format("YYYY-MM-DD");
+    // const date = new Date(inputDate);
+    // const year = date.getFullYear().toString();
+    // let month = (date.getMonth() + 1).toString();
+    // if (month.length < 2) {
+    //   month = '0' + month;
+    // }
+    // let day = date.getDate().toString();
+    // if (day.length < 2) {
+    //   day = '0' + day;
+    // }
+    // return year + '-' + month + '-' + day;
+    return t;
   } catch (error) {
     console.log(error);
   }

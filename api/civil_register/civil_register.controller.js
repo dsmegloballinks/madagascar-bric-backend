@@ -94,11 +94,13 @@ module.exports = {
     if (req.query.limit) {
       limit = req.query.limit
     }
+    const sDate = req.query.s_start_date;
+    const sEndDate = req.query.s_end_date;
     const region = req.query.code_region;
     const district = req.query.code_district;
     const commune = req.query.code_commune;
     const fokontany = req.query.code_fokontany;
-    getAll(page, limit, region, district, commune, fokontany, (err, results) => {
+    getAll(sDate, sEndDate, page, limit, region, district, commune, fokontany, (err, results) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });
@@ -261,7 +263,13 @@ module.exports = {
     });
   },
   getLatLong: (req, res) => {
-    GetLatLong((err, results) => {
+    const sDate = req.query.s_start_date;
+    const sEndDate = req.query.s_end_date;
+    const region = req.query.code_region;
+    const district = req.query.code_district;
+    const commune = req.query.code_commune;
+    const fokontany = req.query.code_fokontany;    
+    GetLatLong(sDate, sEndDate, region, district, commune, fokontany, (err, results) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });
