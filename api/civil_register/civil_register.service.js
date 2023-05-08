@@ -29,6 +29,8 @@ const { where } = require("sequelize");
 const { convertDateToStringMoment } = require("../../helper/helperfunctions");
 const { getCenterDateMoment } = require("../../helper/helperfunctions");
 const moment = require("moment/moment");
+const { callbackPromise } = require("nodemailer/lib/shared");
+const { CallTracker } = require("assert");
 
 
 let fatherId;
@@ -36,6 +38,97 @@ let valueToSearch;
 let decId;
 
 module.exports = {
+  signUp: async (data, callBack) => {
+    try {
+      var checkEmailQuery = 'SELECT * FROM access_control WHERE email = $1';
+      var
+        checkEmailResult = await runSql(pool, checkEmailQuery, [data.email]);
+      if (checkEmailResult.rows.length > 0) {
+        return callBack(new Error('Email already exists'));
+      }
+      var insertQuery = `INSERT INTO access_control (user_name, password, email, date_created, status, is_user_admin) 
+            VALUES($1, $2, $3, $4, $5, $6) RETURNING *`;
+      var insertResult = await runSql(pool, insertQuery, [
+        data.user_name,
+        data.password,
+        data.email,
+        new Date().toISOString().substring(0, 19).replace('T', ' '),
+        1,
+        0
+      ]);
+      return callBack(null, insertResult.rows);
+    } catch (error) {
+      return callBack(error);
+    }
+  },
+  updateUser: async (data, userId) => {
+    try {
+      const checkUserQuery = `SELECT * FROM access_control WHERE user_id = $1`;
+      const checkUserResult = await runSql(pool, checkUserQuery, [userId]);
+      if (checkUserResult.rowCount === 0) {
+        throw new Error('User does not exist');
+      }
+
+      const updateQuery = `UPDATE access_control SET email = $1, user_name = $2 WHERE user_id = $3`;
+      const body = [
+        data.email,
+        data.user_name,
+        userId
+      ];
+      const updateResult = await runSql(pool, updateQuery, body);
+      return updateResult.rows[0];
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  },
+  deleteUser: async (user_id, callBack) => {
+    try {
+      const deleteQuery = "DELETE FROM access_control WHERE user_id = $1";
+      const deleteResult = await runSql(pool, deleteQuery, [user_id]);
+      return callBack (deleteResult.rows[0]);
+    } catch (error) {
+      return callBack (error);
+    }
+  },
+  getAllUser: async (page, limit, callBack) => {
+    try {
+      const offset = (page - 1) * limit;
+      const countQuery = "SELECT COUNT(*) FROM access_control";
+      const countResult = await runSql(pool, countQuery);
+
+      const selectQuery = "SELECT * FROM access_control LIMIT $1 OFFSET $2";
+      const selectResult = await runSql(pool, selectQuery, [limit, offset]);
+
+      const data = {
+        total_count: countResult.rows[0].count,
+        page_number: page,
+        page_size: limit,
+        data: selectResult.rows,
+      };
+      return callBack(null, data);
+    } catch (error) {
+      return callBack(error);
+    }
+  },
+  updateUserStatus: async (data, userId) => {
+    try {
+      const checkUserQuery = `SELECT * FROM access_control WHERE user_id = $1`;
+      const checkUserResult = await runSql(pool, checkUserQuery, [userId]);
+      if (checkUserResult.rowCount === 0) {
+        throw new Error('User does not exist');
+      }
+
+      const updateQuery = `UPDATE access_control SET status = $1 WHERE user_id = $2`;
+      const body = [
+        data.status,
+        userId
+      ];
+      const updateResult = await runSql(pool, updateQuery, body);
+      return updateResult.rows[0];
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  },
   login: async (user_name, password, callBack) => {
     try {
       var loginQuery = 'SELECT * FROM access_control WHERE user_name = $1 AND  password = $2 ';

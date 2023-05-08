@@ -14,7 +14,12 @@ const {
   getSevenDayGraph,
   login,
   getLatLong,
-  getSevenDayGraphQuery
+  getSevenDayGraphQuery,
+  signUp,
+  updateUser,
+  deleteUser,
+  getAllUser,
+  updateUserStatus
 } = require("./civil_register.controller");
 const Paths = require("../../helper/constants/Paths");
 
@@ -33,6 +38,9 @@ var upload = multer({
   storage: storage,
 }).single("file");
 
+router.post("/sign-up", signUp);
+router.patch("/update-user", updateUser);
+router.patch("/update-user-status", updateUserStatus);
 router.post('/convert', upload, convertFile);
 router.post("/login", login);
 router.get('/get-child-count', getChildCount);
@@ -45,5 +53,7 @@ router.patch("/update", update);
 router.post("/delete", deleteById);
 router.get("/get-lat-long", getLatLong);
 router.get("/get-seven-day-graph-query", getSevenDayGraphQuery);
+router.post("/delete-user", deleteUser);
+router.get("/get-all-users", getAllUser);
 
 module.exports = router;

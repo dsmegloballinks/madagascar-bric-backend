@@ -15,7 +15,13 @@ const {
   getSevenDayGraph,
   login,
   GetLatLong,
-  getSevenDayGraphQuery
+  getSevenDayGraphQuery,
+  signUp,
+  updateUser,
+  deleteUser,
+  getAllUser,
+  updateUserStatus,
+
 } = require("./civil_register.service");
 const { hashSync, genSaltSync, compareSync, validationResult } = require("express-validator");
 const { sign } = require("express-validator");
@@ -30,6 +36,111 @@ const { isNullOrEmpty } = require('../../helper/helperfunctions');
 const appDir = dirname(require.main.filename);
 
 module.exports = {
+  signUp: (req, res) => {
+    const body = req.body;
+    signUp(body, (err, results) => {
+      if (err && err.message === 'Phone number already exists') {
+        const data = common.error(err.message, ErrorCode.failed);
+        return res.json({ data });
+      }
+      else if (err) {
+        const data = common.error(Messages.MSG_INVALID_DATA, ErrorCode.failed);
+        return res.json({ data });
+      }
+      else if (results == 0) {
+        const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist,);
+        return res.json({ data });
+      }
+      else {
+        const data = common.success(results, Messages.MSG_SUCCESS, ErrorCode.success);
+        return res.json({ data });
+      }
+    });
+  },
+  updateUser: async (req, res) => {
+    const { user_id, email, user_name } = req.body;
+
+    try {
+      const updatedUser = await updateUser({ email, user_name }, user_id);
+      const data = common.success(updatedUser, Messages.MSG_UPDATE_SUCCESS, ErrorCode.success);
+      return res.json({ data });
+    } catch (error) {
+      if (error.message === 'User does not exist') {
+        const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
+        return res.json({ data });
+      } else {
+        const data = common.error(Messages.MSG_INVALID_DATA, ErrorCode.failed);
+        return res.json({ data });
+      }
+    }
+  },
+  deleteUser: async (req, res) => {
+    const { user_id } = req.query;
+
+    if (!user_id) {
+      const data = common.error(Messages.MSG_INVALID_DATA, ErrorCode.failed);
+      return res.json(data);
+    }
+
+    try {
+      deleteUser(user_id, (error, deleteResult) => {
+        if (error) {
+          const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+          return res.json(data);
+        }
+        if (deleteResult === 0) {
+          const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
+          return res.json(data);
+        }
+        const data = common.success(deleteResult, Messages.MSG_DELETE_SUCCESS, ErrorCode.success);
+        return res.json(data);
+      });
+    } catch (error) {
+      const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+      return res.json(data);
+    }
+  },
+  updateUserStatus: async (req, res) => {
+    const { user_id, status } = req.body;
+  
+    try {
+      const updateUserStatusResult = await updateUserStatus({ status }, user_id);
+      if (updateUserStatusResult === 0) {
+        const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
+        return res.json(data);
+      } else {
+        const data = common.success(updateUserStatusResult, Messages.MSG_UPDATE_SUCCESS, ErrorCode.success);
+        return res.json(data);
+      }
+    } catch (error) {
+      const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+      return res.json(data);
+    }
+  },
+  getAllUser: async (req, res) => {
+    let page = 1;
+    let limit = 10;
+    if (req.query.page) {
+      page = req.query.page;
+    }
+    if (req.query.limit) {
+      limit = req.query.limit;
+    }
+
+    try {
+      getAllUser(page, limit, (error, result) => {
+        if (error) {
+          const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+          return res.json(data);
+        }
+        const data = common.pagination(result.data, result.total_count, page, limit, Messages.MSG_SUCCESS, ErrorCode.success);
+        return res.json(data);
+      });
+    } catch (error) {
+      const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+      return res.json(data);
+    }
+  },
   login: (req, res) => {
     const body = req.body;
     login(body.user_name, body.password, (error, results) => {
@@ -65,7 +176,6 @@ module.exports = {
       }
     });
   },
-  //------------end------------!
   getById: (req, res) => {
     const id = req.query.id;
     console.log("req", req);
@@ -268,7 +378,7 @@ module.exports = {
     const region = req.query.code_region;
     const district = req.query.code_district;
     const commune = req.query.code_commune;
-    const fokontany = req.query.code_fokontany;    
+    const fokontany = req.query.code_fokontany;
     GetLatLong(sDate, sEndDate, region, district, commune, fokontany, (err, results) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
