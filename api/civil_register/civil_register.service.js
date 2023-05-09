@@ -85,9 +85,9 @@ module.exports = {
     try {
       const deleteQuery = "DELETE FROM access_control WHERE user_id = $1";
       const deleteResult = await runSql(pool, deleteQuery, [user_id]);
-      return callBack (deleteResult.rows[0]);
+      return callBack(deleteResult.rows[0]);
     } catch (error) {
-      return callBack (error);
+      return callBack(error);
     }
   },
   getAllUser: async (page, limit, callBack) => {
@@ -96,7 +96,7 @@ module.exports = {
       const countQuery = "SELECT COUNT(*) FROM access_control";
       const countResult = await runSql(pool, countQuery);
 
-      const selectQuery = "SELECT * FROM access_control LIMIT $1 OFFSET $2";
+      const selectQuery = "SELECT * FROM access_control ORDER BY user_id DESC LIMIT $1 OFFSET $2";
       const selectResult = await runSql(pool, selectQuery, [limit, offset]);
 
       const data = {
@@ -753,5 +753,5 @@ module.exports = {
     var lastSevenDates = getLastDates("2023-05-04", 7);
     var queryLastSevenData = `SELECT count(child_cr_id) FROM registration_form where dec_date >= '${lastSevenDates.start}' and dec_date <= '${lastSevenDates.end}'`;
     return callBack(null, queryLastSevenData);
-  }
+  },
 };
