@@ -25,11 +25,9 @@ const { convertDateToDDD } = require("../../helper/helperfunctions");
 const { convertDateToMMM } = require("../../helper/helperfunctions");
 const { formatDate } = require("../../helper/helperfunctions");
 const { getLastDates } = require("../../helper/helperfunctions");
-const { where } = require("sequelize");
 const { convertDateToStringMoment } = require("../../helper/helperfunctions");
 const { getCenterDateMoment } = require("../../helper/helperfunctions");
 const moment = require("moment/moment");
-const { callbackPromise } = require("nodemailer/lib/shared");
 const { CallTracker } = require("assert");
 
 

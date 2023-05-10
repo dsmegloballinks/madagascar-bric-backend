@@ -139,64 +139,6 @@ module.exports = {
       });
     });
   },
-  sendNotification: function (user_id, body, title) {
-    // Initialize the Firebase Admin SDK
-    admin.initializeApp({
-      credential: admin.credential.cert('./tip-in-f760d-firebase-adminsdk-2t32f-3f9db07a58.json'),
-      // databaseURL: "https://<DATABASE_NAME>.firebaseio.com"
-    });
-
-    const db = admin.firestore();
-
-    const userId = user_id;
-    // Retrieve the device tokens for the specified user from the MySQL database
-    pool.query(`SELECT device_token FROM tbl_user WHERE id='${userId}'`, (error, results) => {
-      if (error) throw error;
-      if (results.length === 0) return;
-
-      // Loop through the retrieved tokens and send the notification message to each user
-      results.forEach((result) => {
-        const message = {
-          notification: {
-            title: title,
-            body: body,
-          },
-          token: result.device_token,
-        };
-
-        admin.messaging().send(message)
-          .then((response) => {
-            console.log('Successfully sent message:', response);
-          })
-          .catch((error) => {
-            console.error('Error sending message:', error);
-          });
-      });
-    });
-  },
-  sendEmail: async (to, subject, text) => {
-    try {
-      let transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: `dsmegloballinks@gmail.com`,
-          pass: 'zzjhywxfvwypmeki'
-        }
-      });
-
-      let mailOptions = {
-        from: `dsmegloballinks@gmail.com`,
-        to: `ceo@dsmeglobal.com`,
-        subject: subject,
-        text: text
-      };
-
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`Email sent: ${info.messageId}`);
-    } catch (error) {
-      console.error(`Error occurred while sending email: ${error.message}`);
-    }
-  },
   readFiles(filePath) {
     let result = [];
     let extension = filePath.split('.').pop();
