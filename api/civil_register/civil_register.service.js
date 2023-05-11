@@ -495,7 +495,7 @@ module.exports = {
                     let resultCivilRegisterInsertDeclarant;
 
                     var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth) VALUES";
-                    for (let i = 1; i < forms.length; i++) {
+                    for (let i = 0; i < forms.length; i++) {
                       // if (isNullOrEmpty(result[i][6])) { result[i][6] = null; }
                       // if (isNullOrEmpty(result[i][10])) { result[i][10] = null; } //info_enfant-prenom_enfant
                       // if (isNullOrEmpty(result[i][9])) { result[i][9] = null; } //info_enfant-nom_enfant
@@ -525,98 +525,97 @@ module.exports = {
                     resultCivilRegisterInsert = await runSql(pool, queryCivilRegisterInsert, []);
 
 
-                    // var queryCivilRegisterInsertFather = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession, is_residence_same) VALUES";
+                    var queryCivilRegisterInsertFather = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession, is_residence_same) VALUES";
                     // // ######## FOR FATHER ######## \\
-                    // for (let i = 1; i < result.length; i++) {
-                    //   if (isNullOrEmpty(result[i][32])) { result[i][32] = null; } //info_pere-niu_pere
-                    //   if (isNullOrEmpty(result[i][34])) { result[i][34] = null; } //info_pere-prenom_pere
-                    //   if (isNullOrEmpty(result[i][33])) { result[i][33] = null; } //info_pere-nom_pere 
-                    //   if (isNullOrEmpty(result[i][35])) { result[i][35] = null; } result[i][35] = formatDate(result[i][35]); //info_pere-date_naissance_pere
-                    //   if (isNullOrEmpty(result[i][38])) { result[i][38] = null; } //info_pere-info_pere_2-region_pere
-                    //   if (isNullOrEmpty(result[i][39])) { result[i][39] = null; } //info_pere-info_pere_2-district_pere
-                    //   if (isNullOrEmpty(result[i][40])) { result[i][40] = null; } //info_pere-info_pere_2-commune_pere
-                    //   if (isNullOrEmpty(result[i][41])) { result[i][41] = null; } //info_pere-info_pere_2-fokontany_pere
-                    //   if (isNullOrEmpty(result[i][42])) { result[i][42] = null; } //info_pere-profession_pere
-                    //   if (isNullOrEmpty(result[i][36])) { result[i][36] = null; } //info_pere-mother_father_same_address
+                    for (let i = 0; i < forms.length; i++) {
+                      //   if (isNullOrEmpty(result[i][32])) { result[i][32] = null; } //info_pere-niu_pere
+                      //   if (isNullOrEmpty(result[i][34])) { result[i][34] = null; } //info_pere-prenom_pere
+                      //   if (isNullOrEmpty(result[i][33])) { result[i][33] = null; } //info_pere-nom_pere 
+                      //   if (isNullOrEmpty(result[i][35])) { result[i][35] = null; } result[i][35] = formatDate(result[i][35]); //info_pere-date_naissance_pere
+                      //   if (isNullOrEmpty(result[i][38])) { result[i][38] = null; } //info_pere-info_pere_2-region_pere
+                      //   if (isNullOrEmpty(result[i][39])) { result[i][39] = null; } //info_pere-info_pere_2-district_pere
+                      //   if (isNullOrEmpty(result[i][40])) { result[i][40] = null; } //info_pere-info_pere_2-commune_pere
+                      //   if (isNullOrEmpty(result[i][41])) { result[i][41] = null; } //info_pere-info_pere_2-fokontany_pere
+                      //   if (isNullOrEmpty(result[i][42])) { result[i][42] = null; } //info_pere-profession_pere
+                      //   if (isNullOrEmpty(result[i][36])) { result[i][36] = null; } //info_pere-mother_father_same_address
 
 
-                    //   queryCivilRegisterInsertFather += `(${result[i][32]},'${result[i][34]}','${result[i][33]}','${result[i][35]}','${result[i][38]}','${result[i][39]}','${result[i][40]}','${result[i][41]}','${result[i][42]}','${result[i][36]}'),`;
-                    // }
-                    // queryCivilRegisterInsertFather = removeCommaAtEnd(queryCivilRegisterInsertFather);
-                    // queryCivilRegisterInsertFather += " RETURNING id, uin";
-                    // resultCivilRegisterInsertFather = await runSql(pool, queryCivilRegisterInsertFather, []);
+                      queryCivilRegisterInsertFather += `(${forms[i].info_pere.niu_pere},'${forms[i].info_pere.prenom_pere}','${forms[i].info_pere.nom_pere}','${formatDate(forms[i].info_pere.date_naissance_pere)}','${forms[i].info_pere.info_pere_2.region_pere}','${forms[i].info_pere.info_pere_2.district_pere}','${forms[i].info_pere.info_pere_2.commune_pere}','${forms[i].info_pere.info_pere_2.fokontany_pere}','${forms[i].info_pere.profession_pere}','${forms[i].info_pere.mother_father_same_address}'),`;
+                    }
+                    queryCivilRegisterInsertFather = removeCommaAtEnd(queryCivilRegisterInsertFather);
+                    queryCivilRegisterInsertFather += " RETURNING id, uin";
+                    resultCivilRegisterInsertFather = await runSql(pool, queryCivilRegisterInsertFather, []);
                     // // ######## FOR FATHER ######## \\
 
                     // // ######## FOR MOTHER ######## \\
-                    // var queryCivilRegisterInsertMother = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES";
-                    // for (let i = 1; i < result.length; i++) {
-                    //   if (isNullOrEmpty(result[i][20])) { result[i][20] = null; } // info_mere-niu_mere
-                    //   if (isNullOrEmpty(result[i][22])) { result[i][22] = null; } //info_mere-prenom_mere
-                    //   if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_mere-nom_mere
-                    //   if (isNullOrEmpty(result[i][23])) { result[i][23] = null; } result[i][23] = formatDate(result[i][23]); //info_mere-date_naissance_mere
-                    //   if (isNullOrEmpty(result[i][31])) { result[i][31] = null; } //info_mere-nationalite_mere
-                    //   if (isNullOrEmpty(result[i][25])) { result[i][25] = null; } //info_mere-region_mere
-                    //   if (isNullOrEmpty(result[i][26])) { result[i][26] = null; } //info_mere-district_mere
-                    //   if (isNullOrEmpty(result[i][27])) { result[i][27] = null; } //info_mere-commune_mere
-                    //   if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_mere-fokontany_mere
-                    //   if (isNullOrEmpty(result[i][29])) { result[i][29] = null; } //info_mere-profession_mere
+                    var queryCivilRegisterInsertMother = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES";
+                    for (let i = 0; i < forms.length; i++) {
+                      //   if (isNullOrEmpty(result[i][20])) { result[i][20] = null; } // info_mere-niu_mere
+                      //   if (isNullOrEmpty(result[i][22])) { result[i][22] = null; } //info_mere-prenom_mere
+                      //   if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_mere-nom_mere
+                      //   if (isNullOrEmpty(result[i][23])) { result[i][23] = null; } result[i][23] = formatDate(result[i][23]); //info_mere-date_naissance_mere
+                      //   if (isNullOrEmpty(result[i][31])) { result[i][31] = null; } //info_mere-nationalite_mere
+                      //   if (isNullOrEmpty(result[i][25])) { result[i][25] = null; } //info_mere-region_mere
+                      //   if (isNullOrEmpty(result[i][26])) { result[i][26] = null; } //info_mere-district_mere
+                      //   if (isNullOrEmpty(result[i][27])) { result[i][27] = null; } //info_mere-commune_mere
+                      //   if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_mere-fokontany_mere
+                      //   if (isNullOrEmpty(result[i][29])) { result[i][29] = null; } //info_mere-profession_mere
 
-                    //   queryCivilRegisterInsertMother += `('${result[i][20]}', '${result[i][22]}', '${result[i][21]}', '${result[i][23]}', '${result[i][31]}', '${result[i][25]}', '${result[i][26]}', '${result[i][27]}',  '${result[i][28]}', '${result[i][29]}'),`;
-                    // }
-                    // queryCivilRegisterInsertMother = removeCommaAtEnd(queryCivilRegisterInsertMother);
-                    // queryCivilRegisterInsertMother += " RETURNING id, uin";
-                    // resultCivilRegisterInsertMother = await runSql(pool, queryCivilRegisterInsertMother, []);
+                      queryCivilRegisterInsertMother += `('${forms[i].info_mere.niu_mere}', '${forms[i].info_mere.prenom_mere}', '${forms[i].info_mere.nom_mere}', '${formatDate(forms[i].info_mere.date_naissance_mere)}', '${forms[i].info_mere.nationalite_mere}', '${forms[i].info_mere.region_mere}', '${forms[i].info_mere.district_mere}', '${forms[i].info_mere.commune_mere}',  '${forms[i].info_mere.fokontany_mere}', '${forms[i].info_mere.profession_mere}'),`;
+                    }
+                    queryCivilRegisterInsertMother = removeCommaAtEnd(queryCivilRegisterInsertMother);
+                    queryCivilRegisterInsertMother += " RETURNING id, uin";
+                    resultCivilRegisterInsertMother = await runSql(pool, queryCivilRegisterInsertMother, []);
                     // // ######## FOR MOTHER ######## \\
 
 
                     // // ######## FOR DECLARANT ######## \\
-                    // var queryCivilRegisterInsertDeclarant = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, region_of_birth) VALUES";
-                    // for (let i = 1; i < result.length; i++) {
-                    //   if (isNullOrEmpty(result[i][44])) { result[i][44] = null; } // info_declarant-info_declarant_2-niu_declarant
-                    //   if (isNullOrEmpty(result[i][46])) { result[i][46] = null; } // info_declarant-info_declarant_2-prenom_declarant
-                    //   if (isNullOrEmpty(result[i][45])) { result[i][45] = null; } // info_declarant-info_declarant_2-nom_declarant
-                    //   if (isNullOrEmpty(result[i][47])) { result[i][47] = null; } result[i][47] = formatDate(result[i][47]); //info_declarant-info_declarant_2-date_naissance_declarant
-                    //   if (isNullOrEmpty(result[i][48])) { result[i][48] = null; } // info_declarant-info_declarant_2-address_declarant
+                    var queryCivilRegisterInsertDeclarant = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, region_of_birth) VALUES";
+                    for (let i = 0; i < forms.length; i++) {
+                      //   if (isNullOrEmpty(result[i][44])) { result[i][44] = null; } // info_declarant-info_declarant_2-niu_declarant
+                      //   if (isNullOrEmpty(result[i][46])) { result[i][46] = null; } // info_declarant-info_declarant_2-prenom_declarant
+                      //   if (isNullOrEmpty(result[i][45])) { result[i][45] = null; } // info_declarant-info_declarant_2-nom_declarant
+                      //   if (isNullOrEmpty(result[i][47])) { result[i][47] = null; } result[i][47] = formatDate(result[i][47]); //info_declarant-info_declarant_2-date_naissance_declarant
+                      //   if (isNullOrEmpty(result[i][48])) { result[i][48] = null; } // info_declarant-info_declarant_2-address_declarant
 
-                    //   queryCivilRegisterInsertDeclarant += `('${result[i][44]}', '${result[i][46]}', '${result[i][45]}', '${result[i][47]}', '${result[i][48]}'),`;
-                    // }
-                    // queryCivilRegisterInsertDeclarant = removeCommaAtEnd(queryCivilRegisterInsertDeclarant);
-                    // queryCivilRegisterInsertDeclarant += " RETURNING id, uin";
-                    // resultCivilRegisterInsertDeclarant = await runSql(pool, queryCivilRegisterInsertDeclarant, []);
+                      if (forms[i].info_declarant.info_declarant_2.date_naissance_declarant != null)
+                        queryCivilRegisterInsertDeclarant += `('${forms[i].info_declarant.info_declarant_2.niu_declarant}', '${forms[i].info_declarant.info_declarant_2.prenom_declarant}', '${forms[i].info_declarant.info_declarant_2.nom_declarant}', '${formatDate(forms[i].info_declarant.info_declarant_2.date_naissance_declarant)}', '${forms[i].info_declarant.info_declarant_2.address_declarant}'),`;
+                    }
+                    queryCivilRegisterInsertDeclarant = removeCommaAtEnd(queryCivilRegisterInsertDeclarant);
+                    queryCivilRegisterInsertDeclarant += " RETURNING id, uin";
+                    resultCivilRegisterInsertDeclarant = await runSql(pool, queryCivilRegisterInsertDeclarant, []);
                     // // ######## FOR DECLARANT ######## \\
 
-                    // var childsInfo = resultCivilRegisterInsert.rows;
-                    // var fathersInfo = resultCivilRegisterInsertFather.rows;
-                    // var mothersInfo = resultCivilRegisterInsertMother.rows;
-                    // var delarantsInfo = resultCivilRegisterInsertDeclarant.rows;
+                    var childsInfo = resultCivilRegisterInsert.rows;
+                    var fathersInfo = resultCivilRegisterInsertFather.rows;
+                    var mothersInfo = resultCivilRegisterInsertMother.rows;
+                    var delarantsInfo = resultCivilRegisterInsertDeclarant.rows;
+                    var resultCopy = forms;//result.splice(1, forms.length - 1);
+                    var queryRegistrationFormInsert = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, in_charge_sign, lattitude, longitude ) VALUES";
+                    for (let i = 0; i < childsInfo.length; i++) {
+                      const childInfo = childsInfo[i];
+                      let indexChildFileData = resultCopy.findIndex(element => element.gr_info.numero_declaration == childInfo.uin);
+                      if (indexChildFileData > -1 && forms[i].location != null) {
+                        // var indexFather = fathersInfo.findIndex(element => element.info_pere.niu_pere == forms[i].info_pere.niu_pere);
+                        // var indexMother = mothersInfo.findIndex(element => element.info_mere.niu_mere == forms[i].info_mere.niu_mere);
+                        // var indexDeclarant = delarantsInfo.findIndex(element => element.info_declarant.info_declarant_2.niu_declarant == forms[i].info_declarant.info_declarant_2.niu_declarant);
+                        var fatherId = fathersInfo[i].id;
+                        var motherId = mothersInfo[i].id;
+                        var declarantId = delarantsInfo[i].id;
+                        var lattitude = forms[i].location.coordinates[0];
+                        var longitude = forms[i].location.coordinates[1];
 
-                    // var resultCopy = result.splice(1, result.length - 1);
-                    // var queryRegistrationFormInsert = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, in_charge_sign, lattitude, longitude ) VALUES";
-                    // for (let i = 0; i < childsInfo.length; i++) {
-                    //   const childInfo = childsInfo[i];
-                    //   let indexChildFileData = resultCopy.findIndex(element => element[6] == childInfo.uin);
-                    //   if (indexChildFileData > -1) {
-                    //     var indexFather = fathersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][32]);
-                    //     var indexMother = mothersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][20]);
-                    //     var indexDeclarant = delarantsInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][44]);
-                    //     var fatherId = fathersInfo[indexFather].id;
-                    //     var motherId = mothersInfo[indexMother].id;
-                    //     var lattitude = resultCopy[indexChildFileData][54];
-                    //     var longitude = resultCopy[indexChildFileData][55];
-                    //     var declarantId = delarantsInfo[indexDeclarant].id;
+                        //43 = info_declarant-lien_declarant
+                        //7 = gr_info-date_declaration
+                        //8 = gr_info-date_transcription
 
-
-                    //     //43 = info_declarant-lien_declarant
-                    //     //7 = gr_info-date_declaration
-                    //     //8 = gr_info-date_transcription
-
-                    //     //53 = lieu_signature
-                    //     queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${resultCopy[indexChildFileData][43]}','${formatDate(resultCopy[indexChildFileData][7])}','${formatDate(resultCopy[indexChildFileData][8])}','${resultCopy[indexChildFileData][50]}','${lattitude}','${longitude}'),`
-                    //   }
-                    // }
-                    // queryRegistrationFormInsert = removeCommaAtEnd(queryRegistrationFormInsert);
-                    // queryRegistrationFormInsert += " RETURNING id";
-                    // var resultRegistrationFormInsertDeclarant = await runSql(pool, queryRegistrationFormInsert, []);
+                        //53 = lieu_signature
+                        queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${forms[i].info_declarant.lien_declarant}','${formatDate(forms[i].gr_info.date_declaration)}','${formatDate(forms[i].gr_info.date_transcription)}','${forms[i].lieu_signature}','${lattitude}','${longitude}'),`
+                      }
+                    }
+                    queryRegistrationFormInsert = removeCommaAtEnd(queryRegistrationFormInsert);
+                    queryRegistrationFormInsert += " RETURNING id";
+                    var resultRegistrationFormInsertDeclarant = await runSql(pool, queryRegistrationFormInsert, []);
                     resolve("Data entered");
                     /////////////// Attachment Downloading Code ////////////////
                     // formsUrl = `${baseUrl}/projects/${projectId}/forms/fiche_declaration_mg_commune/submissions/${forms.value[0].meta.instanceID}/attachments/${forms.value[0].pic_certificate}`
