@@ -1,25 +1,13 @@
-const fs = require('fs');
-const csv = require('fast-csv');
-
 const {
-
-  saveFileToDatabase,
   saveFileDetail,
   fileUpload,
   getAllLogs
 
 } = require("./excel_upload_log.service");
-const { hashSync, genSaltSync, compareSync, validationResult } = require("express-validator");
-const { sign } = require("express-validator");
-// const { successList } = require("../../helper/common");
-const { ErrorCode, ActivityFlag, ResponseType } = require("../../helper/constants/Enums");
+const { ErrorCode } = require("../../helper/constants/Enums");
 const { Messages } = require("../../helper/constants/Messages");
 var common = require("../../helper/common.js");
 const Paths = require('../../helper/constants/Paths');
-const { dirname } = require('path');
-const { rejects } = require('assert');
-const { isNullOrEmpty } = require('../../helper/helperfunctions');
-const appDir = dirname(require.main.filename);
 
 module.exports = {
 
@@ -28,12 +16,7 @@ module.exports = {
       return res.status(400).json({ message: 'Missing file parameter' });
     }
     var path = require('path');
-    // let filePath = req.file;
-    // filePath = "D:/node/worldbank/" + filePath.path;
     let filePath = path.resolve(__dirname) + "/../../upload/" + Paths.Paths.CSV + "/" + req.file.filename;
-    // console.log("------------------- requestFileFileName", req.file.filename);
-    // console.log("------------------- filepath :", filePath); 
-    // return res.status(200).json({ message:  });
     saveFileDetail(filePath)
       .then(result => {
         return res.status(200).json({ error_code: 0, result });

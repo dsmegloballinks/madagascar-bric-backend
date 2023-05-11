@@ -7,7 +7,6 @@ const {
   getAll,
   update,
   deleteById,
-  readFiles,
   saveFileToDatabase,
   getChildCount,
   getFokontany,
@@ -23,17 +22,11 @@ const {
   updateUserStatus,
 
 } = require("./civil_register.service");
-const { hashSync, genSaltSync, compareSync, validationResult } = require("express-validator");
-const { sign } = require("express-validator");
-// const { successList } = require("../../helper/common");
-const { ErrorCode, ActivityFlag, ResponseType } = require("../../helper/constants/Enums");
+const { ErrorCode } = require("../../helper/constants/Enums");
 const { Messages } = require("../../helper/constants/Messages");
 var common = require("../../helper/common.js");
 const Paths = require('../../helper/constants/Paths');
-const { dirname } = require('path');
-const { rejects } = require('assert');
 const { isNullOrEmpty } = require('../../helper/helperfunctions');
-const appDir = dirname(require.main.filename);
 
 module.exports = {
   signUp: (req, res) => {
@@ -102,7 +95,7 @@ module.exports = {
   },
   updateUserStatus: async (req, res) => {
     const { user_id, status } = req.body;
-  
+
     try {
       const updateUserStatusResult = await updateUserStatus({ status }, user_id);
       if (updateUserStatusResult === 0) {
@@ -260,12 +253,7 @@ module.exports = {
       return res.status(400).json({ message: 'Missing file parameter' });
     }
     var path = require('path');
-    // let filePath = req.file;
-    // filePath = "D:/node/worldbank/" + filePath.path;
     let filePath = path.resolve(__dirname) + "/../../upload/" + Paths.Paths.CSV + "/" + req.file.filename;
-    // console.log("------------------- requestFileFileName", req.file.filename);
-    // console.log("------------------- filepath :", filePath); 
-    // return res.status(200).json({ message:  });
     saveFileToDatabase(filePath)
       .then(result => {
         return res.status(200).json({ error_code: 0, result });
@@ -396,7 +384,62 @@ module.exports = {
     getSevenDayGraphQuery((err, result) => {
       return res.json(result);
     });
+  },
+  getODKAPI: (req, res) => {
+    // var request = require('request');
+    const axios = require('axios');
+
+    const baseUrl = 'https://odk.siecm.gov.mg//v1';
+    const loginUrl = `${baseUrl}/sessions`;
+    // const username = 'brasool@worldbank.org';
+    // const password = 'burhan@042';
+    const username = 'odkmgbirthstats@saadaan.com';
+    const password = 'tues444day';
+
+    axios.post(loginUrl, {
+      email: username,
+      password: password
+    })
+      .then(response => {
+        const authToken = response.data.token;
+        // use the authToken to make subsequent API requests
+        const projectId = '1';
+        let formsUrl = `${baseUrl}/projects/${projectId}/forms/fiche_declaration_mg_commune.svc/Submissions`
+
+        axios.get(formsUrl, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        })
+          .then(response => {
+            const forms = response.data;
+            formsUrl = `${baseUrl}/projects/${projectId}/forms/fiche_declaration_mg_commune/submissions/${forms.value[0].meta.instanceID}/attachments/${forms.value[0].pic_certificate}`
+            axios.get(formsUrl, {
+              headers: {
+                'Authorization': `Bearer ${authToken}`
+              },
+              responseType: 'stream',
+            })
+              .then(response => {
+                new Promise((resolve, reject) => {
+                  response.data
+                    .pipe(fs.createWriteStream(forms.value[0].pic_certificate))
+                    .on('finish', () => resolve())
+                    .on('error', e => reject(e));
+                });
+                return res.json(forms);
+              })
+              .catch(error => {
+                console.error(error);
+              });
+          })
+          .catch(error => {
+            console.error(error);
+          });
+      })
+      .catch(error => {
+        console.error(error);
+      });
+
   }
-
-
 };

@@ -1,5 +1,4 @@
 const router = require("express").Router();
-// const { checkToken } = require("../../auth/token_validation");
 const {
   create,
   getById,
@@ -7,7 +6,6 @@ const {
   update,
   deleteById,
   convertFile,
-  saveFileToDatabase,
   getChildCount,
   getAllFokontany,
   Dashboard,
@@ -19,7 +17,8 @@ const {
   updateUser,
   deleteUser,
   getAllUser,
-  updateUserStatus
+  updateUserStatus,
+  getODKAPI
 } = require("./civil_register.controller");
 const Paths = require("../../helper/constants/Paths");
 
@@ -55,5 +54,6 @@ router.get("/get-lat-long", getLatLong);
 router.get("/get-seven-day-graph-query", getSevenDayGraphQuery);
 router.post("/delete-user", deleteUser);
 router.get("/get-all-users", getAllUser);
+router.get("/get-odk-api", getODKAPI);
 
 module.exports = router;
