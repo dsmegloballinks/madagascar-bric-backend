@@ -143,13 +143,14 @@ module.exports = {
 
   createAppointment: async (data, callBack) => {
     try {
-      const insertQuery = "INSERT INTO appointment_registrar (location, appointment_date, appointment_time, appointed_by, registrar_id) VALUES ($1, $2, $3, $4, $5) RETURNING *";
+      const insertQuery = "INSERT INTO appointment_registrar (location, appointment_date, appointment_time, appointed_by, registrar_id, appointment_status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
       const insertResult = await pool.query(insertQuery, [
         data.location,
         data.appointment_date,
         data.appointment_time,
         data.appointed_by,
-        data.registrar_id
+        data.registrar_id,
+        data.appointment_status
       ]);
 
       return callBack(null, {
