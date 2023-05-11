@@ -22,6 +22,7 @@ function generateUniqueId() {
 
 const civilRegisterRouter = require("./api/civil_register/civil_register.router");
 const excelRouter = require("./api/excel_upload_log/excel_upload_log.router");
+const registrarRouter = require("./api/registrar_register/registrar_register.router");
 
 app.use(express.json());
 app.use(cors());
@@ -30,6 +31,8 @@ app.use(cors());
 
 app.use("/api/civil_register", civilRegisterRouter);
 app.use("/api/excel_upload_log", excelRouter);
+app.use("/api/registrar_register", registrarRouter);
+
 app.use(express.static("./upload"));
 //--socket.io connection--//
 

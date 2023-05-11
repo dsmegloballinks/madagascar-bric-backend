@@ -1,10 +1,7 @@
 const pool = require("../../config/database");
-const Enums = require("../../helper/constants/Enums");
 const Paths = require("../../helper/constants/Paths");
-const helperfunctions = require("../../helper/helperfunctions");
 const fs = require("fs");
 const fastcsv = require('fast-csv');
-const { error } = require("console");
 const { runSql } = require("../../helper/helperfunctions");
 const { removeCommaAtEnd } = require("../../helper/helperfunctions");
 const { isNullOrEmpty } = require("../../helper/helperfunctions");
@@ -14,11 +11,6 @@ const { getLastDates } = require("../../helper/helperfunctions");
 const { convertDateToStringMoment } = require("../../helper/helperfunctions");
 const { getCenterDateMoment } = require("../../helper/helperfunctions");
 const moment = require("moment/moment");
-
-
-let fatherId;
-let valueToSearch;
-let decId;
 
 module.exports = {
   signUp: async (data, callBack) => {
@@ -186,7 +178,7 @@ module.exports = {
       countQuery += whereClause;
       var results = await runSql(pool, query, []);
       const allResult = [];
-      // var resultCount = isNullOrEmpty(results.rowsl) ? 0 : results[0].rows.length;
+
       var resultCount = results.rows.length;
       if (resultCount == 0) {
         return callback(null, {
@@ -223,15 +215,6 @@ module.exports = {
         fatherResults.rows[0].district_name = fatherSresultQuery.rows[0].district_name;
         fatherResults.rows[0].commune_name = fatherSresultQuery.rows[0].commune_name;
 
-
-        // var DecSQuery = `SELECT libelle_fokontany AS Fokontonay_Name, libelle_region AS Region_name, libelle_district AS District_name, libelle_commune AS Commune_name from fokontany where code_region = '${DecResults.rows[0].region_of_birth}' AND code_district = '${DecResults.rows[0].district_of_birth}' AND code_commune = '${DecResults.rows[0].commune_of_birth}' AND code_fokontany = '${DecResults.rows[0].fokontany_of_birth}'`;
-        // var DecSresultQuery = await runSql(pool, DecSQuery, []);
-        // DecResults.rows[0].region_name = DecSresultQuery.rows[0].region_name;
-        // DecResults.rows[0].fokontonay_name = DecSresultQuery.rows[0].fokontonay_name;
-        // DecResults.rows[0].district_name = DecSresultQuery.rows[0].district_name;
-        // DecResults.rows[0].commune_name = DecSresultQuery.rows[0].commune_name;
-
-
         const record = {
           cr: results.rows[x],
           mother: motherResults.rows[0],
@@ -241,24 +224,6 @@ module.exports = {
         };
         allResult.push(record);
         if (allResult.length === results.rows.length) {
-          // for (let index = 0; index < allResult.length; index++) {
-          //   const element = allResult[index];
-          //   let crNameArray = element.cr.given_name.split(" ");
-          //   element.cr.first_name = crNameArray[0]
-          //   element.cr.last_name = crNameArray[crNameArray.length - 1]
-
-          //   let motherNameArray = element.mother.given_name.split(" ");
-          //   element.mother.first_name = motherNameArray[0]
-          //   element.mother.last_name = motherNameArray[motherNameArray.length - 1]
-
-          //   let fatherNameArray = element.father.given_name.split(" ");
-          //   element.father.first_name = fatherNameArray[0]
-          //   element.father.last_name = fatherNameArray[fatherNameArray.length - 1]
-
-          //   let declarantNameArray = element.declarant.given_name.split(" ");
-          //   element.declarant.first_name = declarantNameArray[0]
-          //   element.declarant.last_name = declarantNameArray[declarantNameArray.length - 1]
-          // }
           countQueryResult = await runSql(pool, countQuery, []);
           const data = {
             results: allResult,
