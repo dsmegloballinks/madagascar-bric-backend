@@ -11,6 +11,7 @@ const { getLastDates } = require("../../helper/helperfunctions");
 const { convertDateToStringMoment } = require("../../helper/helperfunctions");
 const { getCenterDateMoment } = require("../../helper/helperfunctions");
 const moment = require("moment/moment");
+const axios = require('axios');
 
 module.exports = {
   signUp: async (data, callBack) => {
@@ -450,6 +451,206 @@ module.exports = {
           queryRegistrationFormInsert += " RETURNING id";
           var resultRegistrationFormInsertDeclarant = await runSql(pool, queryRegistrationFormInsert, []);
           resolve("Data entered");
+        } catch (error) {
+          reject(error);
+        }
+      });
+    } catch (error) {
+      return callBack(isNullOrEmpty(error.message) ? error : error.message, null);
+    }
+  },
+  fetchSaveToDatabase: (callBack) => {
+    try {
+      let result = [];
+      return new Promise(async (resolve, reject) => {
+        try {
+          const baseUrl = 'https://odk.siecm.gov.mg//v1';
+          const loginUrl = `${baseUrl}/sessions`;
+          const username = 'odkmgbirthstats@saadaan.com';
+          const password = 'tues444day';
+          let forms;
+
+          forms = new Promise((resolve, reject) => {
+            axios.post(loginUrl, {
+              email: username,
+              password: password
+            })
+              .then(response => {
+                const authToken = response.data.token;
+                // use the authToken to make subsequent API requests
+                const projectId = '1';
+                let formsUrl = `${baseUrl}/projects/${projectId}/forms/fiche_declaration_mg_commune.svc/Submissions`
+
+                axios.get(formsUrl, {
+                  headers: {
+                    'Authorization': `Bearer ${authToken}`
+                  }
+                })
+                  .then(async response => {
+                    forms = response.data.value;
+
+                    let resultCivilRegisterInsert;
+                    let resultCivilRegisterInsertFather;
+                    let resultCivilRegisterInsertMother;
+                    let resultCivilRegisterInsertDeclarant;
+
+                    var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth) VALUES";
+                    for (let i = 1; i < forms.length; i++) {
+                      // if (isNullOrEmpty(result[i][6])) { result[i][6] = null; }
+                      // if (isNullOrEmpty(result[i][10])) { result[i][10] = null; } //info_enfant-prenom_enfant
+                      // if (isNullOrEmpty(result[i][9])) { result[i][9] = null; } //info_enfant-nom_enfant
+                      // if (isNullOrEmpty(result[i][11])) { result[i][11] = null; } result[i][11] = formatDate(result[i][11]);//info_enfant-date_naissance
+                      // if (isNullOrEmpty(result[i][12])) { result[i][12] = null; } //info_enfant-heure_naissance
+                      // if (isNullOrEmpty(result[i][16])) { result[i][16] = null; } //info_enfant-b_location
+                      // if (isNullOrEmpty(result[i][13])) { result[i][13] = null; } //info_enfant-sexe_enfant
+                      // if (isNullOrEmpty(result[i][14])) { result[i][14] = null; } //info_enfant-parent_marie
+                      // if (isNullOrEmpty(result[i][15])) { result[i][15] = null; } //info_enfant-meme_residence
+                      // if (result[i][17] === null || result[i][17].length === 0) {
+                      //   result[i][17] = 0;
+                      // } else {
+                      //   result[i][17] = 1;
+                      // } //info_enfant-name_health_center queery to ber change to save yes or no
+                      // if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_enfant_name_toooooooooooo beeeeeeeeeeeeeee filledddddddddddddddddddddddddd
+                      // if (isNullOrEmpty(result[i][17])) { result[i][17] = null; } //info_enfant-name_health_center
+                      // if (isNullOrEmpty(result[i][18])) { result[i][18] = null; } //info_enfant-name_domicile
+                      // if (isNullOrEmpty(result[i][25])) { result[i][25] = null; } //info_enfant-region_naissance mothers
+                      // if (isNullOrEmpty(result[i][26])) { result[i][26] = null; } //info_enfant-district_naissance mothers
+                      // if (isNullOrEmpty(result[i][27])) { result[i][27] = null; } //info_enfant-commune_naissance mothers
+                      // if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_enfant-fokontany mothers
+
+                      queryCivilRegisterInsert += `('${forms[i].gr_info.numero_declaration}', '${forms[i].info_enfant.prenom_enfant}', '${forms[i].info_enfant.nom_enfant}', '${formatDate(forms[i].info_enfant.date_naissance)}', '${forms[i].info_enfant.heure_naissance}', '${forms[i].info_enfant.b_location}', '${forms[i].info_enfant.sexe_enfant}', '${forms[i].info_enfant.parent_marie}', '${forms[i].info_enfant.meme_residence}', '${forms[i].info_enfant.name_health_center == null || forms[i].info_enfant.name_health_center == 0 ? 0 : 1}', '${forms[i].info_mere.prenom_mere}', '${forms[i].info_enfant.name_health_center}', '${forms[i].info_enfant.name_domicile}', '${forms[i].info_mere.region_mere}', '${forms[i].info_mere.district_mere}', '${forms[i].info_mere.commune_mere}', '${forms[i].info_mere.fokontany_mere}'),`;
+                    }
+                    queryCivilRegisterInsert = removeCommaAtEnd(queryCivilRegisterInsert);
+                    queryCivilRegisterInsert += " RETURNING id, uin";
+                    resultCivilRegisterInsert = await runSql(pool, queryCivilRegisterInsert, []);
+
+
+                    // var queryCivilRegisterInsertFather = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession, is_residence_same) VALUES";
+                    // // ######## FOR FATHER ######## \\
+                    // for (let i = 1; i < result.length; i++) {
+                    //   if (isNullOrEmpty(result[i][32])) { result[i][32] = null; } //info_pere-niu_pere
+                    //   if (isNullOrEmpty(result[i][34])) { result[i][34] = null; } //info_pere-prenom_pere
+                    //   if (isNullOrEmpty(result[i][33])) { result[i][33] = null; } //info_pere-nom_pere 
+                    //   if (isNullOrEmpty(result[i][35])) { result[i][35] = null; } result[i][35] = formatDate(result[i][35]); //info_pere-date_naissance_pere
+                    //   if (isNullOrEmpty(result[i][38])) { result[i][38] = null; } //info_pere-info_pere_2-region_pere
+                    //   if (isNullOrEmpty(result[i][39])) { result[i][39] = null; } //info_pere-info_pere_2-district_pere
+                    //   if (isNullOrEmpty(result[i][40])) { result[i][40] = null; } //info_pere-info_pere_2-commune_pere
+                    //   if (isNullOrEmpty(result[i][41])) { result[i][41] = null; } //info_pere-info_pere_2-fokontany_pere
+                    //   if (isNullOrEmpty(result[i][42])) { result[i][42] = null; } //info_pere-profession_pere
+                    //   if (isNullOrEmpty(result[i][36])) { result[i][36] = null; } //info_pere-mother_father_same_address
+
+
+                    //   queryCivilRegisterInsertFather += `(${result[i][32]},'${result[i][34]}','${result[i][33]}','${result[i][35]}','${result[i][38]}','${result[i][39]}','${result[i][40]}','${result[i][41]}','${result[i][42]}','${result[i][36]}'),`;
+                    // }
+                    // queryCivilRegisterInsertFather = removeCommaAtEnd(queryCivilRegisterInsertFather);
+                    // queryCivilRegisterInsertFather += " RETURNING id, uin";
+                    // resultCivilRegisterInsertFather = await runSql(pool, queryCivilRegisterInsertFather, []);
+                    // // ######## FOR FATHER ######## \\
+
+                    // // ######## FOR MOTHER ######## \\
+                    // var queryCivilRegisterInsertMother = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES";
+                    // for (let i = 1; i < result.length; i++) {
+                    //   if (isNullOrEmpty(result[i][20])) { result[i][20] = null; } // info_mere-niu_mere
+                    //   if (isNullOrEmpty(result[i][22])) { result[i][22] = null; } //info_mere-prenom_mere
+                    //   if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_mere-nom_mere
+                    //   if (isNullOrEmpty(result[i][23])) { result[i][23] = null; } result[i][23] = formatDate(result[i][23]); //info_mere-date_naissance_mere
+                    //   if (isNullOrEmpty(result[i][31])) { result[i][31] = null; } //info_mere-nationalite_mere
+                    //   if (isNullOrEmpty(result[i][25])) { result[i][25] = null; } //info_mere-region_mere
+                    //   if (isNullOrEmpty(result[i][26])) { result[i][26] = null; } //info_mere-district_mere
+                    //   if (isNullOrEmpty(result[i][27])) { result[i][27] = null; } //info_mere-commune_mere
+                    //   if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_mere-fokontany_mere
+                    //   if (isNullOrEmpty(result[i][29])) { result[i][29] = null; } //info_mere-profession_mere
+
+                    //   queryCivilRegisterInsertMother += `('${result[i][20]}', '${result[i][22]}', '${result[i][21]}', '${result[i][23]}', '${result[i][31]}', '${result[i][25]}', '${result[i][26]}', '${result[i][27]}',  '${result[i][28]}', '${result[i][29]}'),`;
+                    // }
+                    // queryCivilRegisterInsertMother = removeCommaAtEnd(queryCivilRegisterInsertMother);
+                    // queryCivilRegisterInsertMother += " RETURNING id, uin";
+                    // resultCivilRegisterInsertMother = await runSql(pool, queryCivilRegisterInsertMother, []);
+                    // // ######## FOR MOTHER ######## \\
+
+
+                    // // ######## FOR DECLARANT ######## \\
+                    // var queryCivilRegisterInsertDeclarant = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, region_of_birth) VALUES";
+                    // for (let i = 1; i < result.length; i++) {
+                    //   if (isNullOrEmpty(result[i][44])) { result[i][44] = null; } // info_declarant-info_declarant_2-niu_declarant
+                    //   if (isNullOrEmpty(result[i][46])) { result[i][46] = null; } // info_declarant-info_declarant_2-prenom_declarant
+                    //   if (isNullOrEmpty(result[i][45])) { result[i][45] = null; } // info_declarant-info_declarant_2-nom_declarant
+                    //   if (isNullOrEmpty(result[i][47])) { result[i][47] = null; } result[i][47] = formatDate(result[i][47]); //info_declarant-info_declarant_2-date_naissance_declarant
+                    //   if (isNullOrEmpty(result[i][48])) { result[i][48] = null; } // info_declarant-info_declarant_2-address_declarant
+
+                    //   queryCivilRegisterInsertDeclarant += `('${result[i][44]}', '${result[i][46]}', '${result[i][45]}', '${result[i][47]}', '${result[i][48]}'),`;
+                    // }
+                    // queryCivilRegisterInsertDeclarant = removeCommaAtEnd(queryCivilRegisterInsertDeclarant);
+                    // queryCivilRegisterInsertDeclarant += " RETURNING id, uin";
+                    // resultCivilRegisterInsertDeclarant = await runSql(pool, queryCivilRegisterInsertDeclarant, []);
+                    // // ######## FOR DECLARANT ######## \\
+
+                    // var childsInfo = resultCivilRegisterInsert.rows;
+                    // var fathersInfo = resultCivilRegisterInsertFather.rows;
+                    // var mothersInfo = resultCivilRegisterInsertMother.rows;
+                    // var delarantsInfo = resultCivilRegisterInsertDeclarant.rows;
+
+                    // var resultCopy = result.splice(1, result.length - 1);
+                    // var queryRegistrationFormInsert = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, in_charge_sign, lattitude, longitude ) VALUES";
+                    // for (let i = 0; i < childsInfo.length; i++) {
+                    //   const childInfo = childsInfo[i];
+                    //   let indexChildFileData = resultCopy.findIndex(element => element[6] == childInfo.uin);
+                    //   if (indexChildFileData > -1) {
+                    //     var indexFather = fathersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][32]);
+                    //     var indexMother = mothersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][20]);
+                    //     var indexDeclarant = delarantsInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][44]);
+                    //     var fatherId = fathersInfo[indexFather].id;
+                    //     var motherId = mothersInfo[indexMother].id;
+                    //     var lattitude = resultCopy[indexChildFileData][54];
+                    //     var longitude = resultCopy[indexChildFileData][55];
+                    //     var declarantId = delarantsInfo[indexDeclarant].id;
+
+
+                    //     //43 = info_declarant-lien_declarant
+                    //     //7 = gr_info-date_declaration
+                    //     //8 = gr_info-date_transcription
+
+                    //     //53 = lieu_signature
+                    //     queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${resultCopy[indexChildFileData][43]}','${formatDate(resultCopy[indexChildFileData][7])}','${formatDate(resultCopy[indexChildFileData][8])}','${resultCopy[indexChildFileData][50]}','${lattitude}','${longitude}'),`
+                    //   }
+                    // }
+                    // queryRegistrationFormInsert = removeCommaAtEnd(queryRegistrationFormInsert);
+                    // queryRegistrationFormInsert += " RETURNING id";
+                    // var resultRegistrationFormInsertDeclarant = await runSql(pool, queryRegistrationFormInsert, []);
+                    resolve("Data entered");
+                    /////////////// Attachment Downloading Code ////////////////
+                    // formsUrl = `${baseUrl}/projects/${projectId}/forms/fiche_declaration_mg_commune/submissions/${forms.value[0].meta.instanceID}/attachments/${forms.value[0].pic_certificate}`
+                    // axios.get(formsUrl, {
+                    //   headers: {
+                    //     'Authorization': `Bearer ${authToken}`
+                    //   },
+                    //   responseType: 'stream',
+                    // })
+                    //   .then(response => {
+                    //     new Promise((resolve, reject) => {
+                    //       response.data
+                    //         .pipe(fs.createWriteStream(forms.value[0].pic_certificate))
+                    //         .on('finish', () => resolve())
+                    //         .on('error', e => reject(e));
+                    //     });
+                    //     return res.json(null, forms);
+                    //   })
+                    //   .catch(error => {
+                    //     return callBack(isNullOrEmpty(error.message) ? error : error.message, null);
+                    //   });
+                  })
+                  .catch(error => {
+                    reject(isNullOrEmpty(error.message) ? error : error.message, null);
+                  });
+              })
+              .catch(error => {
+                reject(isNullOrEmpty(error.message) ? error : error.message, null);
+              });
+          });
+
+
+
+          resolve(forms);
         } catch (error) {
           reject(error);
         }

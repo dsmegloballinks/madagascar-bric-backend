@@ -1,6 +1,3 @@
-const fs = require('fs');
-const csv = require('fast-csv');
-
 const {
 
   create,
@@ -11,17 +8,9 @@ const {
   getAppointmentByRegistarId
 
 } = require("./registrar_register.service");
-const { hashSync, genSaltSync, compareSync, validationResult } = require("express-validator");
-const { sign } = require("express-validator");
-// const { successList } = require("../../helper/common");
-const { ErrorCode, ActivityFlag, ResponseType } = require("../../helper/constants/Enums");
+const { ErrorCode } = require("../../helper/constants/Enums");
 const { Messages } = require("../../helper/constants/Messages");
 var common = require("../../helper/common.js");
-const Paths = require('../../helper/constants/Paths');
-const { dirname } = require('path');
-const { rejects } = require('assert');
-const { isNullOrEmpty } = require('../../helper/helperfunctions');
-const appDir = dirname(require.main.filename);
 
 module.exports = {
 

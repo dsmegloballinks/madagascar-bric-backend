@@ -15,6 +15,7 @@
     "axios": "^1.4.0",
     "bcrypt": "^5.1.0",
     "body-parser": "^1.20.1",
+    "combined-stream": "^1.0.8",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "csv-parser": "^3.0.0",

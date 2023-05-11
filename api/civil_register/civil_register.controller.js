@@ -19,6 +19,7 @@ const {
   deleteUser,
   getAllUser,
   updateUserStatus,
+  fetchSaveToDatabase,
 
 } = require("./civil_register.service");
 const { ErrorCode } = require("../../helper/constants/Enums");
@@ -261,6 +262,15 @@ module.exports = {
         return res.status(500).json({ message: err });
       });
   },
+  fetchFile: (req, res) => {
+    fetchSaveToDatabase()
+      .then(result => {
+        return res.status(200).json({ error_code: 0, result });
+      })
+      .catch(err => {
+        return res.status(500).json({ message: err });
+      });
+  },
   getChildCount: (req, res) => {
     const today = req.query.date;
     getChildCount(today, (err, result) => {
@@ -384,61 +394,4 @@ module.exports = {
       return res.json(result);
     });
   },
-  getODKAPI: (req, res) => {
-    // var request = require('request');
-    const axios = require('axios');
-
-    const baseUrl = 'https://odk.siecm.gov.mg//v1';
-    const loginUrl = `${baseUrl}/sessions`;
-    // const username = 'brasool@worldbank.org';
-    // const password = 'burhan@042';
-    const username = 'odkmgbirthstats@saadaan.com';
-    const password = 'tues444day';
-
-    axios.post(loginUrl, {
-      email: username,
-      password: password
-    })
-      .then(response => {
-        const authToken = response.data.token;
-        // use the authToken to make subsequent API requests
-        const projectId = '1';
-        let formsUrl = `${baseUrl}/projects/${projectId}/forms/fiche_declaration_mg_commune.svc/Submissions`
-
-        axios.get(formsUrl, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        })
-          .then(response => {
-            const forms = response.data;
-            formsUrl = `${baseUrl}/projects/${projectId}/forms/fiche_declaration_mg_commune/submissions/${forms.value[0].meta.instanceID}/attachments/${forms.value[0].pic_certificate}`
-            axios.get(formsUrl, {
-              headers: {
-                'Authorization': `Bearer ${authToken}`
-              },
-              responseType: 'stream',
-            })
-              .then(response => {
-                new Promise((resolve, reject) => {
-                  response.data
-                    .pipe(fs.createWriteStream(forms.value[0].pic_certificate))
-                    .on('finish', () => resolve())
-                    .on('error', e => reject(e));
-                });
-                return res.json(forms);
-              })
-              .catch(error => {
-                console.error(error);
-              });
-          })
-          .catch(error => {
-            console.error(error);
-          });
-      })
-      .catch(error => {
-        console.error(error);
-      });
-
-  }
 };
