@@ -175,7 +175,7 @@ module.exports = {
       if (!isNullOrEmpty(sEndDate))
         whereClause += ` AND DATE(rf.dec_date) <= '${sEndDate}'`;
       query += whereClause;
-      query += ` ORDER BY cr.id LIMIT ${limit} OFFSET ${offset}`;
+      query += ` ORDER BY cr.id DESC LIMIT ${limit} OFFSET ${offset} `;
       countQuery += whereClause;
       var results = await runSql(pool, query, []);
       const allResult = [];
@@ -208,14 +208,20 @@ module.exports = {
         results.rows[x].fokontonay_name = motherSresultQuery.rows[0].fokontonay_name;
         results.rows[x].district_name = motherSresultQuery.rows[0].district_name;
         results.rows[x].commune_name = motherSresultQuery.rows[0].commune_name;
+        var documentQuery = `SELECT * from attached_document where cr_id = ${results.rows[x].id} `;
+        var resultDocument = await runSql(pool, documentQuery, []);
+        results.rows[x].pic_certificate = resultDocument.rows[0].document_path;
+        results.rows[x].picture_register = resultDocument.rows[1].document_path;
         //--father--//
-        var fatherSQuery = `SELECT libelle_fokontany AS Fokontonay_Name, libelle_region AS Region_name, libelle_district AS District_name, libelle_commune AS Commune_name from fokontany where code_region = '${fatherResults.rows[0].region_of_birth}' AND code_district = '${fatherResults.rows[0].district_of_birth}' AND code_commune = '${fatherResults.rows[0].commune_of_birth}' AND code_fokontany = '${fatherResults.rows[0].fokontany_of_birth}'`;
-        var fatherSresultQuery = await runSql(pool, fatherSQuery, []);
-        fatherResults.rows[0].region_name = fatherSresultQuery.rows[0].region_name;
-        fatherResults.rows[0].fokontonay_name = fatherSresultQuery.rows[0].fokontonay_name;
-        fatherResults.rows[0].district_name = fatherSresultQuery.rows[0].district_name;
-        fatherResults.rows[0].commune_name = fatherSresultQuery.rows[0].commune_name;
 
+        if (fatherResults.rows[0].region_of_birth && fatherResults.rows[0].district_of_birth && fatherResults.rows[0].commune_of_birth && fatherResults.rows[0].fokontany_of_birth) {
+          var fatherSQuery = `SELECT libelle_fokontany AS Fokontonay_Name, libelle_region AS Region_name, libelle_district AS District_name, libelle_commune AS Commune_name from fokontany where code_region = '${fatherResults.rows[0].region_of_birth}' AND code_district = '${fatherResults.rows[0].district_of_birth}' AND code_commune = '${fatherResults.rows[0].commune_of_birth}' AND code_fokontany = '${fatherResults.rows[0].fokontany_of_birth}'`;
+          var fatherSresultQuery = await runSql(pool, fatherSQuery, []);
+          fatherResults.rows[0].region_name = fatherSresultQuery.rows[0].region_name;
+          fatherResults.rows[0].fokontonay_name = fatherSresultQuery.rows[0].fokontonay_name;
+          fatherResults.rows[0].district_name = fatherSresultQuery.rows[0].district_name;
+          fatherResults.rows[0].commune_name = fatherSresultQuery.rows[0].commune_name;
+        }
         const record = {
           cr: results.rows[x],
           mother: motherResults.rows[0],
@@ -234,7 +240,7 @@ module.exports = {
         }
       }
     } catch (error) {
-      return callback(error, null);
+      return callback(error.message, null);
     }
   },
   update: (data, file, callBack) => {
@@ -539,8 +545,8 @@ module.exports = {
                       //   if (isNullOrEmpty(result[i][42])) { result[i][42] = null; } //info_pere-profession_pere
                       //   if (isNullOrEmpty(result[i][36])) { result[i][36] = null; } //info_pere-mother_father_same_address
 
-
-                      queryCivilRegisterInsertFather += `(${forms[i].info_pere.niu_pere},'${forms[i].info_pere.prenom_pere}','${forms[i].info_pere.nom_pere}','${formatDate(forms[i].info_pere.date_naissance_pere)}','${forms[i].info_pere.info_pere_2.region_pere}','${forms[i].info_pere.info_pere_2.district_pere}','${forms[i].info_pere.info_pere_2.commune_pere}','${forms[i].info_pere.info_pere_2.fokontany_pere}','${forms[i].info_pere.profession_pere}','${forms[i].info_pere.mother_father_same_address}'),`;
+                      if (forms[i].info_pere.niu_pere && forms[i].info_pere.prenom_pere && forms[i].info_pere.nom_pere && forms[i].info_pere.date_naissance_pere && forms[i].info_pere.info_pere_2.region_pere && forms[i].info_pere.info_pere_2.district_pere && forms[i].info_pere.info_pere_2.commune_pere && forms[i].info_pere.info_pere_2.fokontany_pere && forms[i].info_pere.profession_pere && forms[i].info_pere.mother_father_same_address)
+                        queryCivilRegisterInsertFather += `(${forms[i].info_pere.niu_pere},'${forms[i].info_pere.prenom_pere}','${forms[i].info_pere.nom_pere}','${formatDate(forms[i].info_pere.date_naissance_pere)}','${forms[i].info_pere.info_pere_2.region_pere}','${forms[i].info_pere.info_pere_2.district_pere}','${forms[i].info_pere.info_pere_2.commune_pere}','${forms[i].info_pere.info_pere_2.fokontany_pere}','${forms[i].info_pere.profession_pere}','${forms[i].info_pere.mother_father_same_address}'),`;
                     }
                     queryCivilRegisterInsertFather = removeCommaAtEnd(queryCivilRegisterInsertFather);
                     queryCivilRegisterInsertFather += " RETURNING id, uin";
@@ -560,8 +566,8 @@ module.exports = {
                       //   if (isNullOrEmpty(result[i][27])) { result[i][27] = null; } //info_mere-commune_mere
                       //   if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_mere-fokontany_mere
                       //   if (isNullOrEmpty(result[i][29])) { result[i][29] = null; } //info_mere-profession_mere
-
-                      queryCivilRegisterInsertMother += `('${forms[i].info_mere.niu_mere}', '${forms[i].info_mere.prenom_mere}', '${forms[i].info_mere.nom_mere}', '${formatDate(forms[i].info_mere.date_naissance_mere)}', '${forms[i].info_mere.nationalite_mere}', '${forms[i].info_mere.region_mere}', '${forms[i].info_mere.district_mere}', '${forms[i].info_mere.commune_mere}',  '${forms[i].info_mere.fokontany_mere}', '${forms[i].info_mere.profession_mere}'),`;
+                      if (forms[i].info_mere.niu_mere)
+                        queryCivilRegisterInsertMother += `('${forms[i].info_mere.niu_mere}', '${forms[i].info_mere.prenom_mere}', '${forms[i].info_mere.nom_mere}', '${formatDate(forms[i].info_mere.date_naissance_mere)}', '${forms[i].info_mere.nationalite_mere}', '${forms[i].info_mere.region_mere}', '${forms[i].info_mere.district_mere}', '${forms[i].info_mere.commune_mere}',  '${forms[i].info_mere.fokontany_mere}', '${forms[i].info_mere.profession_mere}'),`;
                     }
                     queryCivilRegisterInsertMother = removeCommaAtEnd(queryCivilRegisterInsertMother);
                     queryCivilRegisterInsertMother += " RETURNING id, uin";
@@ -578,7 +584,7 @@ module.exports = {
                       //   if (isNullOrEmpty(result[i][47])) { result[i][47] = null; } result[i][47] = formatDate(result[i][47]); //info_declarant-info_declarant_2-date_naissance_declarant
                       //   if (isNullOrEmpty(result[i][48])) { result[i][48] = null; } // info_declarant-info_declarant_2-address_declarant
 
-                      if (forms[i].info_declarant.info_declarant_2.date_naissance_declarant != null)
+                      if (forms[i].info_declarant.info_declarant_2.date_naissance_declarant != null && forms[i].info_declarant.info_declarant_2.niu_declarant)
                         queryCivilRegisterInsertDeclarant += `('${forms[i].info_declarant.info_declarant_2.niu_declarant}', '${forms[i].info_declarant.info_declarant_2.prenom_declarant}', '${forms[i].info_declarant.info_declarant_2.nom_declarant}', '${formatDate(forms[i].info_declarant.info_declarant_2.date_naissance_declarant)}', '${forms[i].info_declarant.info_declarant_2.address_declarant}'),`;
                     }
                     queryCivilRegisterInsertDeclarant = removeCommaAtEnd(queryCivilRegisterInsertDeclarant);
@@ -601,7 +607,7 @@ module.exports = {
                         // var indexDeclarant = delarantsInfo.findIndex(element => element.info_declarant.info_declarant_2.niu_declarant == forms[i].info_declarant.info_declarant_2.niu_declarant);
                         var fatherId = fathersInfo[i].id;
                         var motherId = mothersInfo[i].id;
-                        var declarantId = delarantsInfo[i].id;
+                        var declarantId = delarantsInfo[i] ? delarantsInfo[i].id : null;
                         var lattitude = forms[i].location.coordinates[0];
                         var longitude = forms[i].location.coordinates[1];
 
@@ -611,32 +617,72 @@ module.exports = {
 
                         //53 = lieu_signature
                         queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${forms[i].info_declarant.lien_declarant}','${formatDate(forms[i].gr_info.date_declaration)}','${formatDate(forms[i].gr_info.date_transcription)}','${forms[i].lieu_signature}','${lattitude}','${longitude}'),`
+
+
                       }
                     }
                     queryRegistrationFormInsert = removeCommaAtEnd(queryRegistrationFormInsert);
                     queryRegistrationFormInsert += " RETURNING id";
                     var resultRegistrationFormInsertDeclarant = await runSql(pool, queryRegistrationFormInsert, []);
-                    resolve("Data entered");
+
                     /////////////// Attachment Downloading Code ////////////////
-                    // formsUrl = `${baseUrl}/projects/${projectId}/forms/fiche_declaration_mg_commune/submissions/${forms.value[0].meta.instanceID}/attachments/${forms.value[0].pic_certificate}`
-                    // axios.get(formsUrl, {
-                    //   headers: {
-                    //     'Authorization': `Bearer ${authToken}`
-                    //   },
-                    //   responseType: 'stream',
-                    // })
-                    //   .then(response => {
-                    //     new Promise((resolve, reject) => {
-                    //       response.data
-                    //         .pipe(fs.createWriteStream(forms.value[0].pic_certificate))
-                    //         .on('finish', () => resolve())
-                    //         .on('error', e => reject(e));
-                    //     });
-                    //     return res.json(null, forms);
-                    //   })
-                    //   .catch(error => {
-                    //     return callBack(isNullOrEmpty(error.message) ? error : error.message, null);
-                    //   });
+                    for (let i = 0; i < forms.length; i++) {
+                      formsUrl = `${baseUrl}/projects/${projectId}/forms/fiche_declaration_mg_commune/submissions/${forms[i].meta.instanceID}/attachments/${forms[i].pic_certificate}`
+                      let fileSavePathCertificate = "./upload/formsImages/pic_certificate_" + forms[i].pic_certificate;
+                      let DBFileSavePathCertificate = "formsImages/pic_certificate_" + forms[i].pic_certificate;
+
+                      axios.get(formsUrl, {
+                        headers: {
+                          'Authorization': `Bearer ${authToken}`
+                        },
+                        responseType: 'stream',
+                      })
+                        .then(response => {
+                          new Promise((resolve, reject) => {
+                            response.data
+                              .pipe(fs.createWriteStream(fileSavePathCertificate))
+                              .on('finish', () => resolve())
+                              .on('error', e => reject(e));
+                          });
+                          // return res.json(null, forms);
+                        })
+                        .catch(error => {
+                          reject(isNullOrEmpty(error.message) ? error : error.message, null);
+                        });
+                      var queryPicCertificateInsert = "INSERT INTO attached_document (cr_id, document_name, document_type, date_created, time_created, document_path) VALUES";
+                      queryPicCertificateInsert += `(${childsInfo[i].id},'pic_certificate','jpg','${formatDate(forms[i].gr_info.date_declaration)}','${forms[i].info_enfant.heure_naissance}','${DBFileSavePathCertificate}')`;
+                      queryPicCertificateInsert += " RETURNING id";
+                      var resultPicCertificateInsert = await runSql(pool, queryPicCertificateInsert, []);
+
+                      formsUrl = `${baseUrl}/projects/${projectId}/forms/fiche_declaration_mg_commune/submissions/${forms[i].meta.instanceID}/attachments/${forms[i].picture_register}`
+                      let fileSavePathRegister = "./upload/formsImages/picture_register_" + forms[i].picture_register;
+                      let DBFileSavePathRegister = "formsImages/picture_register_" + forms[i].picture_register;
+                      axios.get(formsUrl, {
+                        headers: {
+                          'Authorization': `Bearer ${authToken}`
+                        },
+                        responseType: 'stream',
+                      })
+                        .then(response => {
+                          new Promise((resolve, reject) => {
+                            response.data
+                              .pipe(fs.createWriteStream(fileSavePathRegister))
+                              .on('finish', () => resolve())
+                              .on('error', e => reject(e));
+                          });
+                          // return res.json(null, forms);
+                        })
+                        .catch(error => {
+                          reject(isNullOrEmpty(error.message) ? error : error.message, null);
+                        });
+
+                      var queryPicRegisterInsert = "INSERT INTO attached_document (cr_id, document_name, document_type, date_created, time_created, document_path) VALUES";
+                      queryPicRegisterInsert += `(${childsInfo[i].id},'picture_register','jpg','${formatDate(forms[i].gr_info.date_declaration)}','${forms[i].info_enfant.heure_naissance}','${DBFileSavePathRegister}')`;
+                      queryPicRegisterInsert += " RETURNING id";
+                      var resultPicRegisterInsert = await runSql(pool, queryPicRegisterInsert, []);
+                    }
+
+                    resolve("Data entered");
                   })
                   .catch(error => {
                     reject(isNullOrEmpty(error.message) ? error : error.message, null);
@@ -646,9 +692,6 @@ module.exports = {
                 reject(isNullOrEmpty(error.message) ? error : error.message, null);
               });
           });
-
-
-
           resolve(forms);
         } catch (error) {
           reject(error);
