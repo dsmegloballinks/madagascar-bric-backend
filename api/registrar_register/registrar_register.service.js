@@ -141,8 +141,50 @@ module.exports = {
     } catch (error) {
       return callBack(error, null);
     }
-  }
+  },
 
+  updateLastAppointment: async (data, callBack) => {
+    try {
+      let selectQuery = "SELECT id FROM appointment_registrar WHERE registrar_id = $1 ORDER BY id DESC LIMIT 1";
+      let selectResult = await runSql(pool, selectQuery, [data.id]);
+      console.log(selectQuery + " : " + data.id)
+      if (selectResult.rows.length === 0) {
+        return callBack("No appointment found for the given registrar ID", null);
+      }
+
+      let query = "UPDATE appointment_registrar SET";
+      let queryParams = [];
+
+      if (data.location) {
+        query += " location = $1,";
+        queryParams.push(data.location);
+      }
+      if (data.appointment_date) {
+        query += " appointment_date = $2,";
+        queryParams.push(data.appointment_date);
+      }
+      if (data.appointment_time) {
+        query += " appointment_time = $3,";
+        queryParams.push(data.appointment_time);
+      }
+      if (data.appointed_by) {
+        query += " appointed_by = $4,";
+        queryParams.push(data.appointed_by);
+      }
+      if (data.appointment_status) {
+        query += " appointment_status = $5,";
+        queryParams.push(data.appointment_status);
+      }
+
+      query = query.slice(0, -1); // Remove the last comma from the query string
+      query += " WHERE id = $6";
+      queryParams.push(selectResult.rows[0].id);
+      let result = await runSql(pool, query, queryParams);
+      return callBack(null, result.rows[0]);
+    } catch (error) {
+      return callBack(error.message, null);
+    }
+  }
 
 
 };

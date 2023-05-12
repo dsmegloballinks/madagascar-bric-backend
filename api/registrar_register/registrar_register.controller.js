@@ -5,7 +5,8 @@ const {
   delete1,
   updateRegistrar,
   createAppointment,
-  getAppointmentByRegistarId
+  getAppointmentByRegistarId,
+  updateLastAppointment
 
 } = require("./registrar_register.service");
 const { ErrorCode } = require("../../helper/constants/Enums");
@@ -141,7 +142,28 @@ module.exports = {
         }
       }
     });
+  },
+  updateLastAppointment: async (req, res) => {
+    // const id = req.params.id;
+    const data = req.body;
+
+    try {
+      updateLastAppointment(data, (err, result) => {
+        if (err) {
+          const responseData = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+          return res.json(responseData);
+        } else {
+          const responseData = common.success(Messages.MSG_SUCCESS, ErrorCode.success);
+          return res.json(responseData);
+        }
+      });
+    } catch (error) {
+      const responseData = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+      return res.json(responseData);
+    }
   }
+
+
 
 
 };
