@@ -332,6 +332,35 @@ module.exports = {
             reject("error file reading file for data gathering ")
           }
 
+          let x = [];
+          for (let i = 1; i < result.length; i++) {
+            // x.push(result[i][20]);
+            var uinQuery = "SELECT * FROM uin where code_commune = " + result[i][27]; //+ " OR (start_index <= " + result[i][20] + " AND end_index >= " + result[i][20] + ")";
+            var uinResult = await runSql(pool, uinQuery, []);
+            // resolve(uinResult);
+
+            // x.push(uinResult.rows);
+            if (uinResult.rows.length > 0) {
+              for (let j = 0; j < uinResult.rows.length; j++) {
+                if (BigInt(uinResult.rows[j].start_index) <= BigInt(result[i][20]) && BigInt(uinResult.rows[j].end_index) >= BigInt(result[i][20])) {
+                  var duplicateCheckQuery = "SELECT * FROM civil_register where uin = '" + result[i][20]+"'";
+                  var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
+                  if (duplicateCheckResult.rows.length > 0)
+                    x.push(result[i][20] + " => " + uinResult.rows[j].code_commune + " => Duplicate NIU Number")
+                  else
+                    x.push(result[i][20] + " => " + uinResult.rows[j].code_commune + " => VALID")
+
+                }
+                else //if (uinResult.rows[j].start_index <= result[i][20] && uinResult.rows[j].end_index >= result[i][20])
+                  x.push(result[i][20] + " => " + uinResult.rows[j].code_commune + " => Wrong NIU Number")
+                // else
+                //   x.push(result[i][20] + " => " + uinResult.rows[j].code_commune + " => Wrong NIU Number/Duplicate NIU Number")
+              }
+            } else {
+              x.push(result[i][20] + " => " + uinResult.rows[j].code_commune + " => Wrong NIU Location Allocation")
+            }
+          }
+          resolve(x);
 
           var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth) VALUES";
           for (let i = 1; i < result.length; i++) {
@@ -681,7 +710,18 @@ module.exports = {
                       queryPicRegisterInsert += " RETURNING id";
                       var resultPicRegisterInsert = await runSql(pool, queryPicRegisterInsert, []);
                     }
+                    const currentDate = new Date();
+                    const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
 
+                    var insertQuery = 'INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)';
+                    var insertResult = await runSql(pool, insertQuery, [
+                      currentDate.toISOString().substring(0, 19).replace('T', ' '),
+                      childsInfo.length,
+                      "ODK",
+                      "//fiche_declaration_mg_commune",
+                      formattedTime,
+                      "ODK"
+                    ]);
                     resolve("Data entered");
                   })
                   .catch(error => {
@@ -692,6 +732,7 @@ module.exports = {
                 reject(isNullOrEmpty(error.message) ? error : error.message, null);
               });
           });
+
           resolve(forms);
         } catch (error) {
           reject(error);
