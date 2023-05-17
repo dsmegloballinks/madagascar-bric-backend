@@ -18,6 +18,10 @@ const {
   getAllUser,
   updateUserStatus,
   fetchFile,
+  updateController,
+  getCommune,
+  createUin,
+  createUinController,
 } = require("./civil_register.controller");
 const Paths = require("../../helper/constants/Paths");
 
@@ -43,16 +47,18 @@ router.post('/convert', upload, convertFile);
 router.post("/login", login);
 router.get('/get-child-count', getChildCount);
 router.get("/get-fokontany", getAllFokontany);
+router.get("/get-commune", getCommune);
 router.get("/dashboard", Dashboard);
 router.get("/get-seven-day-graph", getSevenDayGraph);
 router.get("/get-all", getAll);
 router.post("/create", create);
-router.patch("/update", update);
+router.patch("/update", updateController);
 router.post("/delete", deleteById);
 router.get("/get-lat-long", getLatLong);
 router.get("/get-seven-day-graph-query", getSevenDayGraphQuery);
 router.post("/delete-user", deleteUser);
 router.get("/get-all-users", getAllUser);
 router.get("/fetch-file", fetchFile);
+router.post("/upload-uin-file", upload, createUinController);
 
 module.exports = router;

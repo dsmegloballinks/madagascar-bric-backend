@@ -20,6 +20,8 @@ const {
   getAllUser,
   updateUserStatus,
   fetchSaveToDatabase,
+  getCommune,
+  createUin,
 
 } = require("./civil_register.service");
 const { ErrorCode } = require("../../helper/constants/Enums");
@@ -203,7 +205,8 @@ module.exports = {
     const district = req.query.code_district;
     const commune = req.query.code_commune;
     const fokontany = req.query.code_fokontany;
-    getAll(sDate, sEndDate, page, limit, region, district, commune, fokontany, (err, results) => {
+    const niuStatus = req.query.niuStatus;
+    getAll(sDate, sEndDate, page, limit, region, district, commune, fokontany, niuStatus, (err, results) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });
@@ -217,20 +220,31 @@ module.exports = {
     });
 
   },
-  update: (req, res) => {
-    const body = req.body;
-    const file = req.file;
-    update(body, file, (err, results) => {
-      if (err) {
-        const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
-        return res.json({ data });
+  updateController: async (req, res) => {
+    const { cr_id, uin } = req.body;
+
+    try {
+      const { error_id, result } = await update({ uin }, cr_id);
+
+      if (error_id === 0) {
+        const data = common.success(result, Messages.MSG_UPDATE_SUCCESS, ErrorCode.success);
+        data.error_id = error_id;
+        return res.json(data);
+      } else if (error_id === 1) {
+        const data = common.error("Duplicate UIN number", ErrorCode.invalid_data);
+        data.error_id = error_id;
+        return res.json(data);
+      } else {
+        const data = common.error("Invalid UIN", ErrorCode.invalid_data);
+        data.error_id = error_id;
+        return res.json(data);
       }
-      else {
-        const data = common.success(results, Messages.MSG_DATA_FOUND, ErrorCode.success);
-        return res.json({ data });
-      }
-    });
+    } catch (error) {
+      const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+      return res.json(data);
+    }
   },
+
   deleteById: (req, res) => {
     const id = req.query.id;
     deleteById(id, (err, results) => {
@@ -394,4 +408,36 @@ module.exports = {
       return res.json(result);
     });
   },
+  getCommune: (req, res) => {
+    getCommune((err, results) => {
+      if (err) {
+        const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+        return res.json({ data });
+      } else if (results.length === 0) {
+        const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
+        return res.json({ data });
+      } else {
+        const data = common.success(results, Messages.MSG_DATA_FOUND, ErrorCode.success);
+        return res.json({ data });
+      }
+    });
+  },
+  createUinController: async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error_code: 1, message: 'Missing file parameter' });
+      }
+
+      var path = require('path');
+      let filePath = path.resolve(__dirname) + "/../../upload/" + Paths.Paths.CSV + "/" + req.file.filename;
+      createUin(filePath, (error, result) => {
+        if (error) {
+          return res.status(500).json(error);
+        }
+        return res.status(200).json(result);
+      });
+    } catch (error) {
+      return res.status(500).json({ error_code: 1, message: error.message });
+    }
+  }
 };

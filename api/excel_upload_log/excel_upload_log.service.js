@@ -87,15 +87,17 @@ module.exports = {
   fileUpload: async (filePath, data, callBack) => {
     try {
       const currentDate = new Date();
-      const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
-
-      var insertQuery = 'INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)';
+      // const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
+      // let path = "/" + Paths.Paths.FILE + "/" + filePath;
+      var insertQuery = `INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)`;
+      console.log(insertQuery)
       var insertResult = await runSql(pool, insertQuery, [
-        currentDate.toISOString().substring(0, 19).replace('T', ' '),
+        currentDate.toISOString().split('T')[0],
         data.number_records,
         data.input_type,
         "/" + Paths.Paths.FILE + "/" + filePath,
-        formattedTime,
+        // formattedTime,
+        currentDate.toISOString().substring(0, 19).replace('T', ' '),
         data.module_type
       ]);
       return callBack(null, insertResult.rows[0]);
