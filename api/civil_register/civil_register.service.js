@@ -149,7 +149,7 @@ module.exports = {
       }
     );
   },
-  getAll: async (sDate, sEndDate, page, limit, region, district, commune, fokontany, niuStatus, error_id, callback) => {
+  getAll: async (sDate, sEndDate, page, limit, region, moduleType, district, commune, fokontany, niuStatus, error_id, callback) => {
     try {
       const offset = (page - 1) * limit;
       let query = `SELECT DISTINCT cr.*, cr.given_name AS first_name, rf.child_cr_id, rf.dec_date, rf.dec_relation, rf.transcription_date, rf.lattitude, rf. longitude, mother.id as mother_cr_id, father_cr_id, declarant_cr_id FROM civil_register cr JOIN registration_form rf ON cr.id = rf.child_cr_id JOIN civil_register mother ON mother.id = rf.mother_cr_id `;
@@ -160,6 +160,10 @@ module.exports = {
       var whereClause = " where 1=1 ";
       if (!isNullOrEmpty(region)) {
         whereClause += ` AND cr.region_of_birth = '${region}'`;
+      }
+      
+      if (!isNullOrEmpty(moduleType)) {
+        whereClause += ` AND upload_excel_log.input_type = '${moduleType}'`;
       }
       if (!isNullOrEmpty(district)) {
         whereClause += ` AND cr.district_of_birth = '${district}'`;
