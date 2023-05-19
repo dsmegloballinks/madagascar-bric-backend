@@ -22,6 +22,8 @@ const {
   fetchSaveToDatabase,
   getCommune,
   createUin,
+  getAllUin,
+
 
 } = require("./civil_register.service");
 const { ErrorCode } = require("../../helper/constants/Enums");
@@ -206,7 +208,8 @@ module.exports = {
     const commune = req.query.code_commune;
     const fokontany = req.query.code_fokontany;
     const niuStatus = req.query.niuStatus;
-    getAll(sDate, sEndDate, page, limit, region, district, commune, fokontany, niuStatus, (err, results) => {
+    const error_id = req.query.error_id;
+    getAll(sDate, sEndDate, page, limit, region, district, commune, fokontany, niuStatus, error_id, (err, results) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });
@@ -244,7 +247,6 @@ module.exports = {
       return res.json(data);
     }
   },
-
   deleteById: (req, res) => {
     const id = req.query.id;
     deleteById(id, (err, results) => {
@@ -439,5 +441,50 @@ module.exports = {
     } catch (error) {
       return res.status(500).json({ error_code: 1, message: error.message });
     }
+  },
+  getAllUinController: async (req, res) => {
+    let page = 1;
+    let limit = 10;
+
+    if (req.query.page) {
+      page = parseInt(req.query.page);
+    }
+
+    if (req.query.limit) {
+      limit = parseInt(req.query.limit);
+    }
+
+    let niuStatus = null;
+
+    if (req.query.niu_status) {
+      niuStatus = req.query.niu_status;
+    }
+
+    let commune = null;
+
+    if (req.query.commune) {
+      commune = req.query.commune;
+    }
+
+    try {
+      getAllUin(niuStatus, commune, page, limit, (error, results, totalRecords) => {
+        if (error) {
+          const data = common.error(error, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+          return res.json({ data });
+        }
+
+        if (results.length === 0) {
+          const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
+          return res.json({ data });
+        }
+
+        const data = common.pagination(results, totalRecords, page, limit, Messages.MSG_DATA_FOUND, ErrorCode.success);
+        return res.json({ data });
+      });
+    } catch (error) {
+      const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+      return res.json({ data });
+    }
   }
+
 };

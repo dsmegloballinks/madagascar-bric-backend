@@ -149,7 +149,7 @@ module.exports = {
       }
     );
   },
-  getAll: async (sDate, sEndDate, page, limit, region, district, commune, fokontany, niuStatus, callback) => {
+  getAll: async (sDate, sEndDate, page, limit, region, district, commune, fokontany, niuStatus, error_id, callback) => {
     try {
       const offset = (page - 1) * limit;
       let query = `SELECT DISTINCT cr.*, cr.given_name AS first_name, rf.child_cr_id, rf.dec_date, rf.dec_relation, rf.transcription_date, rf.lattitude, rf. longitude, mother.id as mother_cr_id, father_cr_id, declarant_cr_id FROM civil_register cr JOIN registration_form rf ON cr.id = rf.child_cr_id JOIN civil_register mother ON mother.id = rf.mother_cr_id `;
@@ -180,6 +180,9 @@ module.exports = {
           whereClause += ` AND cr.error_id = 0`;
         else
           whereClause += ` AND cr.error_id > 0`;
+      }
+      if (!isNullOrEmpty(error_id)) {
+        whereClause += ` AND cr.error_id = '${error_id}'`;
       }
       query += whereClause;
       query += ` ORDER BY cr.id DESC LIMIT ${limit} OFFSET ${offset} `;
@@ -389,7 +392,7 @@ module.exports = {
 
           var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, error_id, error_date) VALUES";
           for (let i = 1; i < result.length; i++) {
-            if (isNullOrEmpty(result[i][6])) { result[i][69] = null; } //info_enfant-niu
+            if (isNullOrEmpty(result[i][69])) { result[i][69] = null; } //info_enfant-niu
             if (isNullOrEmpty(result[i][10])) { result[i][10] = null; } //info_enfant-prenom_enfant
             if (isNullOrEmpty(result[i][9])) { result[i][9] = null; } //info_enfant-nom_enfant
             if (isNullOrEmpty(result[i][11])) { result[i][11] = null; } result[i][11] = formatDate(result[i][11]);//info_enfant-date_naissance
@@ -412,30 +415,53 @@ module.exports = {
             if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_enfant-fokontany mothers
 
             let error_id = 0;
-
-            var uinQuery = "SELECT * FROM uin where code_commune = " + result[i][27];
-            var uinResult = await runSql(pool, uinQuery, []);
-            if (uinResult.rows.length > 0) {
-              for (let j = 0; j < uinResult.rows.length; j++) {
-                if (BigInt(uinResult.rows[j].start_index) <= BigInt(result[i][20]) && BigInt(uinResult.rows[j].end_index) >= BigInt(result[i][20])) {
-                  var duplicateCheckQuery = "SELECT * FROM civil_register where uin = '" + result[i][20] + "'";
-                  var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
-                  if (duplicateCheckResult.rows.length > 0)
+            if (result[i][32].length == 10) {
+              // var uinQuery = "SELECT * FROM uin where code_commune = " + result[i][40];
+              var uinQuery = "SELECT * FROM uin where uin = " + result[i][69];
+              var uinResult = await runSql(pool, uinQuery, []);
+              if (uinResult.rows.length > 0) {
+                if (uinResult.rows[0].code_commune == result[i][27]) {
+                  if (uinResult.rows[0].niu_status == 0) {
+                    const currentDate = new Date();
+                    const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
+                    var updateQuery = `UPDATE uin SET allocation_date='${moment().format("YYYY-MM-DD")}', allocation_time='${moment().format("YYYY-MM-DD HH:mm:ss")}', niu_status=${1} WHERE uin = ${uinResult.rows[0].uin}`;
+                    var updateResult = await runSql(pool, updateQuery, []);
+                    error_id = 0;
+                  }
+                  else {
                     error_id = 1;// Duplicate NIU Number
-                  else
-                    error_id = 0;// VALID
-
+                    // duplicateFatherResult.push(duplicateCheckResult)
+                  }
                 }
-                else
-                  error_id = 2; //Wrong NIU Number
+                else {
+                  error_id = 3; //Wrong NIU Location Allocation
+                }
+                // for (let j = 0; j < uinResult.rows.length; j++) {
+                //   if (BigInt(uinResult.rows[j].start_index) <= BigInt(result[i][32]) && BigInt(uinResult.rows[j].end_index) >= BigInt(result[i][32])) {
+                //     var duplicateCheckQuery = "SELECT * FROM civil_register where uin = '" + result[i][32] + "'";
+                //     var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
+                //     if (duplicateCheckResult.rows.length > 0) {
+                //       error_id = 1;// Duplicate NIU Number
+                //       duplicateFatherResult.push(duplicateCheckResult)
+                //     }
+                //     else
+                //       error_id = 0;// VALID
+
+                //   }
+                //   else
+                //   error_id = 3; //Wrong NIU Location Allocation
+                // }
+              } else {
+                error_id = 2; //Wrong NIU Number
               }
-            } else {
-              error_id = 3; //Wrong NIU Location Allocation
             }
+            else
+              error_id = 4; //Lenght not equal 10.
+
 
             let error_date = formatDate(new Date());
 
-            queryCivilRegisterInsert += `('${result[i][6]}', '${result[i][10]}', '${result[i][9]}', '${result[i][11]}', '${result[i][12]}', '${result[i][16]}', '${result[i][13]}', '${result[i][14]}', '${result[i][15]}', '${result[i][17]}', '${result[i][21]}', '${result[i][17]}', '${result[i][18]}', '${result[i][25]}', '${result[i][26]}', '${result[i][27]}', '${result[i][28]}','${error_id}','${error_date}'),`;
+            queryCivilRegisterInsert += `('${result[i][69]}', '${result[i][10]}', '${result[i][9]}', '${result[i][11]}', '${result[i][12]}', '${result[i][16]}', '${result[i][13]}', '${result[i][14]}', '${result[i][15]}', '${result[i][17]}', '${result[i][21]}', '${result[i][17]}', '${result[i][18]}', '${result[i][25]}', '${result[i][26]}', '${result[i][27]}', '${result[i][28]}','${error_id}','${error_date}'),`;
           }
           queryCivilRegisterInsert = removeCommaAtEnd(queryCivilRegisterInsert);
           queryCivilRegisterInsert += " RETURNING id, uin";
@@ -460,38 +486,22 @@ module.exports = {
 
             let error_id = 0;
             if (result[i][32].length == 10) {
-              // var uinQuery = "SELECT * FROM uin where code_commune = " + result[i][40];
               var uinQuery = "SELECT * FROM uin where uin = " + result[i][32];
               var uinResult = await runSql(pool, uinQuery, []);
               if (uinResult.rows.length > 0) {
-                if(uinResult.rows[0].code_commune == result[i][40])
-                {
-                  if(uinResult.rows[0].niu_status == 0)
+                if (uinResult.rows[0].code_commune == result[i][40]) {
+                  if (uinResult.rows[0].niu_status == 0)
                     error_id = 0;
-                  else{
+                  else {
                     error_id = 1;// Duplicate NIU Number
-                    // duplicateFatherResult.push(duplicateCheckResult)
+                    var duplicateCheckQuery = "SELECT * FROM civil_register where uin = " + uinResult.rows[0].uin;
+                    var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
+                    duplicateFatherResult.push(duplicateCheckResult)
                   }
-                } 
-                else
-                {
+                }
+                else {
                   error_id = 3; //Wrong NIU Location Allocation
                 }
-                // for (let j = 0; j < uinResult.rows.length; j++) {
-                //   if (BigInt(uinResult.rows[j].start_index) <= BigInt(result[i][32]) && BigInt(uinResult.rows[j].end_index) >= BigInt(result[i][32])) {
-                //     var duplicateCheckQuery = "SELECT * FROM civil_register where uin = '" + result[i][32] + "'";
-                //     var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
-                //     if (duplicateCheckResult.rows.length > 0) {
-                //       error_id = 1;// Duplicate NIU Number
-                //       duplicateFatherResult.push(duplicateCheckResult)
-                //     }
-                //     else
-                //       error_id = 0;// VALID
-
-                //   }
-                //   else
-                //   error_id = 3; //Wrong NIU Location Allocation
-                // }
               } else {
                 error_id = 2; //Wrong NIU Number
               }
@@ -525,28 +535,54 @@ module.exports = {
             if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_mere-fokontany_mere
             if (isNullOrEmpty(result[i][29])) { result[i][29] = null; } //info_mere-profession_mere
 
-            let error_id = 0;
-            var uinQuery = "SELECT * FROM uin where code_commune = " + result[i][20];
-            var uinResult = await runSql(pool, uinQuery, []);
-            if (uinResult.rows.length > 0) {
-              for (let j = 0; j < uinResult.rows.length; j++) {
-                if (BigInt(uinResult.rows[j].start_index) <= BigInt(result[i][27]) && BigInt(uinResult.rows[j].end_index) >= BigInt(result[i][27])) {
-                  var duplicateCheckQuery = "SELECT * FROM civil_register where uin = '" + result[i][27] + "'";
-                  var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
-                  if (duplicateCheckResult.rows.length > 0) {
-                    error_id = 1;// Duplicate NIU Number
-                    duplicateFatherResult.push(duplicateCheckResult)
-                  }
-                  else
-                    error_id = 0;// VALID
+            // let error_id = 0;
+            // var uinQuery = "SELECT * FROM uin where code_commune = " + result[i][20];
+            // var uinResult = await runSql(pool, uinQuery, []);
+            // if (uinResult.rows.length > 0) {
+            //   for (let j = 0; j < uinResult.rows.length; j++) {
+            //     if (BigInt(uinResult.rows[j].start_index) <= BigInt(result[i][27]) && BigInt(uinResult.rows[j].end_index) >= BigInt(result[i][27])) {
+            //       var duplicateCheckQuery = "SELECT * FROM civil_register where uin = '" + result[i][27] + "'";
+            //       var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
+            //       if (duplicateCheckResult.rows.length > 0) {
+            //         error_id = 1;// Duplicate NIU Number
+            //         duplicateFatherResult.push(duplicateCheckResult)
+            //       }
+            //       else
+            //         error_id = 0;// VALID
 
+            //     }
+            //     else
+            //       error_id = 2; //Wrong NIU Number
+            //   }
+            // } else {
+            //   error_id = 3; //Wrong NIU Location Allocation
+            // }
+
+            let error_id = 0;
+            if (result[i][32].length == 10) {
+              var uinQuery = "SELECT * FROM uin where uin = " + result[i][27];
+              var uinResult = await runSql(pool, uinQuery, []);
+              if (uinResult.rows.length > 0) {
+                if (uinResult.rows[0].code_commune == result[i][20]) {
+                  if (uinResult.rows[0].niu_status == 0)
+                    error_id = 0;
+                  else {
+                    error_id = 1;// Duplicate NIU Number
+                    var duplicateCheckQuery = "SELECT * FROM civil_register where uin = " + uinResult.rows[0].uin;
+                    var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
+                    duplicateMotherResult.push(duplicateCheckResult)
+                    // duplicateFatherResult.push(duplicateCheckResult)
+                  }
                 }
-                else
-                  error_id = 2; //Wrong NIU Number
+                else {
+                  error_id = 3; //Wrong NIU Location Allocation
+                }
+              } else {
+                error_id = 2; //Wrong NIU Number
               }
-            } else {
-              error_id = 3; //Wrong NIU Location Allocation
             }
+            else
+              error_id = 4; //Lenght not equal 10.
 
             let error_date = formatDate(new Date());
             if (error_id != 1)
@@ -613,7 +649,7 @@ module.exports = {
           var queryRegistrationFormInsert = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, in_charge_sign, lattitude, longitude ) VALUES";
           for (let i = 0; i < childsInfo.length; i++) {
             const childInfo = childsInfo[i];
-            let indexChildFileData = resultCopy.findIndex(element => element[6] == childInfo.uin);
+            let indexChildFileData = resultCopy.findIndex(element => element[69] == childInfo.uin);
             if (indexChildFileData > -1) {
               var indexFather = fathersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][32]);
               var indexMother = mothersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][20]);
@@ -637,6 +673,18 @@ module.exports = {
           queryRegistrationFormInsert = removeCommaAtEnd(queryRegistrationFormInsert);
           // queryRegistrationFormInsert += " RETURNING id";
           var resultRegistrationFormInsertDeclarant = await runSql(pool, queryRegistrationFormInsert, []);
+          const currentDate = new Date();
+          const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
+          let filename = filePath.split("/");
+          var insertQuery = 'INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)';
+          var insertResult = await runSql(pool, insertQuery, [
+            moment().format("YYYY-MM-DD"),
+            childsInfo.length,
+            "FILE",
+            "/" + Paths.Paths.FILE + "/" + filename[filename.length - 1],
+            moment().format("YYYY-MM-DD HH:mm:ss"),
+            "FILE"
+          ]);
           resolve("Data entered");
         } catch (error) {
           reject(error.message);
@@ -1228,6 +1276,44 @@ module.exports = {
     } catch (error) {
       return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
     }
-  }
+  },
+  getAllUin: async (niuStatus, commune, page, limit, callBack) => {
+    try {
+      const offset = (page - 1) * limit;
+      let getQuery = "SELECT * FROM uin";
+      let countQuery = "SELECT COUNT(*) AS total_count FROM uin";
 
+      if (niuStatus || commune) {
+        getQuery += " WHERE";
+        countQuery += " WHERE";
+
+        if (niuStatus) {
+          getQuery += ` niu_status = '${niuStatus}'`;
+          countQuery += ` niu_status = '${niuStatus}'`;
+        }
+
+        if (commune) {
+          if (niuStatus) {
+            getQuery += " AND";
+            countQuery += " AND";
+          }
+          getQuery += ` code_commune = '${commune}'`;
+          countQuery += ` code_commune = '${commune}'`;
+        }
+      }
+
+      getQuery += ` LIMIT ${limit} OFFSET ${offset}`;
+
+      let [getResult, countResult] = await Promise.all([
+        runSql(pool, getQuery, []),
+        runSql(pool, countQuery, [])
+      ]);
+
+      const totalRecords = countResult.rows[0].total_count;
+
+      return callBack(null, getResult.rows, totalRecords);
+    } catch (error) {
+      return callBack(error.message, null);
+    }
+  }
 };
