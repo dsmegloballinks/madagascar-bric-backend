@@ -272,7 +272,7 @@ module.exports = {
   },
   update: async (data, cr_id, callBack) => {
     try {
-      console.log("crResult :", cr_id);
+      // console.log("crResult :", data.uin);
       let crQuery = `SELECT * FROM civil_register WHERE id = ${cr_id}`;
       let crresult = await runSql(pool, crQuery, []);
       if (crresult.rows.length === 0) {
@@ -286,7 +286,7 @@ module.exports = {
       var uinResult = await runSql(pool, uinQuery, []);
       if (uinResult.rows.length > 0) {
         for (let j = 0; j < uinResult.rows.length; j++) {
-          if (BigInt(uinResult.rows[j].start_index) <= BigInt(data.uin) && BigInt(uinResult.rows[j].end_index) >= BigInt(data.uin)) {
+          if (uinResult.rows[j].start_index <= BigInt(data.uin) && uinResult.rows[j].end_index >= BigInt(data.uin)) {
             var duplicateCheckQuery = "SELECT * FROM civil_register where uin = '" + data.uin + "'";
             var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
             if (duplicateCheckResult.rows.length > 0)
@@ -302,7 +302,8 @@ module.exports = {
         error_id = 3; //Wrong NIU Location Allocation
       }
       if (error_id == 0) {
-        let updateIdQuery = `UPDATE civil_register SET error_id = 0 WHERE id = ${cr_id}`;
+
+        let updateIdQuery = `UPDATE civil_register SET uin = ${BigInt(data.uin)}, error_id = 0 WHERE id = ${cr_id}`;
         let updateIdResult = await runSql(pool, updateIdQuery, []);
         return {
           result: duplicateCheckResult.rows[0],
@@ -690,10 +691,10 @@ module.exports = {
           var insertResult = await runSql(pool, insertQuery, [
             moment().format("YYYY-MM-DD"),
             childsInfo.length,
-            "FILE",
+            "ODK",
             "/" + Paths.Paths.FILE + "/" + filename[filename.length - 1],
             moment().format("YYYY-MM-DD HH:mm:ss"),
-            "FILE"
+            "ODK"
           ]);
           resolve("Data entered");
         } catch (error) {
@@ -1226,10 +1227,9 @@ module.exports = {
   },
   getCommune: async (callBack) => {
     try {
-      const query = `SELECT DISTINCT libelle_commune FROM fokontany`;
+      const query = `SELECT DISTINCT libelle_commune, code_commune FROM fokontany`;
       const result = await runSql(pool, query, []);
-      const communes = result.rows.map(row => row.libelle_commune);
-      return callBack(null, communes);
+      return callBack(null, result.rows);
     } catch (error) {
       return callBack(error, null);
     }
@@ -1250,7 +1250,7 @@ module.exports = {
           const worksheet = workbook.Sheets[sheetName];
           result = xlsx.utils.sheet_to_json(worksheet);
         } else if (extension === 'csv') {
-          await new Promise((resolve, reject) => {
+          result = await new Promise((resolve, reject) => {
             const stream = fs.createReadStream(data);
             const csvData = [];
 
@@ -1265,13 +1265,7 @@ module.exports = {
               .on('error', (error) => {
                 reject(error);
               });
-          })
-            .then((parsedData) => {
-              result = parsedData;
-            })
-            .catch((error) => {
-              throw new Error('Error parsing CSV file');
-            });
+          });
         } else {
           throw new Error('Invalid file type');
         }
@@ -1293,20 +1287,29 @@ module.exports = {
           }
 
           uinInsertValues.push(`(
-          '${result[i][0]}',
-          '${result[i][1]}',
-          0
-        )`);
+            '${result[i][0]}',
+            '${result[i][1]}',
+            0
+          )`);
         }
       } catch (error) {
         return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
       }
 
-      const queryUinInsert = `INSERT INTO uin (uin, code_commune, niu_status) VALUES ${uinInsertValues.join(',')}`;
+      const uinInsertQuery = `INSERT INTO uin (uin, code_commune, niu_status) VALUES ${uinInsertValues.join(',')}`;
 
-      // Execute the query and handle the result
       try {
-        const resultUinInsert = await runSql(pool, queryUinInsert, []);
+        // Execute the query and handle the result
+        await runSql(pool, uinInsertQuery, []);
+        const insertQuery = 'INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)';
+        await runSql(pool, insertQuery, [
+          moment().format("YYYY-MM-DD"),
+          result.length,
+          "FILE",
+          "/" + Paths.Paths.FILE + "/" + data,
+          moment().format("YYYY-MM-DD HH:mm:ss"),
+          "FILE"
+        ]);
         return callBack(null, { error_code: 0, message: 'Data inserted successfully' });
       } catch (error) {
         return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
@@ -1315,10 +1318,13 @@ module.exports = {
       return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
     }
   },
+
   getAllUin: async (niuStatus, commune, page, limit, callBack) => {
     try {
       const offset = (page - 1) * limit;
-      let getQuery = "SELECT * FROM uin";
+      let getQuery = `SELECT uin.*, fokontany.libelle_commune AS commune_name
+      FROM uin
+      JOIN fokontany ON uin.code_commune = fokontany.code_commune`;
       let countQuery = "SELECT COUNT(*) AS total_count FROM uin";
 
       if (niuStatus || commune) {
@@ -1335,15 +1341,14 @@ module.exports = {
             getQuery += " AND";
             countQuery += " AND";
           }
-          getQuery += ` code_commune = '${commune}'`;
-          countQuery += ` code_commune = '${commune}'`;
+          getQuery += ` uin.code_commune = '${commune}'`;
+          countQuery += ` uin.code_commune = '${commune}'`;
         }
       }
 
       getQuery += ` LIMIT ${limit} OFFSET ${offset}`;
 
-      console.log(getQuery)
-      console.log(countQuery)
+
       let [getResult, countResult] = await Promise.all([
         runSql(pool, getQuery, []),
         runSql(pool, countQuery, [])

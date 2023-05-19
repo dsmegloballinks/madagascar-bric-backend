@@ -225,8 +225,8 @@ module.exports = {
 
   },
   updateController: async (req, res) => {
-    const { cr_id, uin } = req.query;
-
+    const { cr_id, uin } = req.body;
+    
     try {
       const { error_id, result } = await update({ uin }, cr_id);
 

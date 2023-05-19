@@ -115,7 +115,6 @@ module.exports = {
         countQuery += ` AND module_type LIKE '%${moduleType}%'`;
         selectQuery += ` AND module_type LIKE '%${moduleType}%'`;
       }
-
       const countResult = await runSql(pool, countQuery);
       const selectResult = await runSql(pool, selectQuery + ' ORDER BY id DESC LIMIT $1 OFFSET $2', [limit, offset]);
 
