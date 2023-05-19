@@ -204,12 +204,13 @@ module.exports = {
     const sDate = req.query.s_start_date;
     const sEndDate = req.query.s_end_date;
     const region = req.query.code_region;
+    const moduleType = req.query.moduleType;
     const district = req.query.code_district;
     const commune = req.query.code_commune;
     const fokontany = req.query.code_fokontany;
     const niuStatus = req.query.niuStatus;
     const error_id = req.query.error_id;
-    getAll(sDate, sEndDate, page, limit, region, district, commune, fokontany, niuStatus, error_id, (err, results) => {
+    getAll(sDate, sEndDate, page, limit, region, moduleType, district, commune, fokontany, niuStatus, error_id, (err, results) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });
@@ -224,7 +225,7 @@ module.exports = {
 
   },
   updateController: async (req, res) => {
-    const { cr_id, uin } = req.body;
+    const { cr_id, uin } = req.query;
 
     try {
       const { error_id, result } = await update({ uin }, cr_id);

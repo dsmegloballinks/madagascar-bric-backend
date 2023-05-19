@@ -161,7 +161,7 @@ module.exports = {
       if (!isNullOrEmpty(region)) {
         whereClause += ` AND cr.region_of_birth = '${region}'`;
       }
-      
+
       if (!isNullOrEmpty(moduleType)) {
         whereClause += ` AND upload_excel_log.input_type = '${moduleType}'`;
       }
@@ -301,14 +301,20 @@ module.exports = {
       } else {
         error_id = 3; //Wrong NIU Location Allocation
       }
-      if (error_id = 0) {
+      if (error_id == 0) {
         let updateIdQuery = `UPDATE civil_register SET error_id = 0 WHERE id = ${cr_id}`;
         let updateIdResult = await runSql(pool, updateIdQuery, []);
+        return {
+          result: duplicateCheckResult.rows[0],
+          error_id: error_id
+        };
       }
-      return {
-        result: duplicateCheckResult.rows[0],
-        error_id: error_id
-      };
+      else {
+
+        return {
+          error_id: error_id
+        };
+      }
     } catch (error) {
       throw new Error(error.message);
     }
@@ -700,7 +706,6 @@ module.exports = {
   },
   fetchSaveToDatabase: (callBack) => {
     try {
-      let result = [];
       return new Promise(async (resolve, reject) => {
         try {
           const baseUrl = 'https://odk.siecm.gov.mg//v1';
@@ -727,7 +732,7 @@ module.exports = {
                 })
                   .then(async response => {
                     forms = response.data.value;
-
+                    resolve(forms)
                     let resultCivilRegisterInsert;
                     let resultCivilRegisterInsertFather;
                     let resultCivilRegisterInsertMother;
@@ -756,6 +761,37 @@ module.exports = {
                       // if (isNullOrEmpty(result[i][26])) { result[i][26] = null; } //info_enfant-district_naissance mothers
                       // if (isNullOrEmpty(result[i][27])) { result[i][27] = null; } //info_enfant-commune_naissance mothers
                       // if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_enfant-fokontany mothers
+
+
+                      let error_id = 0;
+                      if (result[i][32].length == 10) {
+                        var uinQuery = "SELECT * FROM uin where uin = " + result[i][69];
+                        var uinResult = await runSql(pool, uinQuery, []);
+                        if (uinResult.rows.length > 0) {
+                          if (uinResult.rows[0].code_commune == result[i][27]) {
+                            if (uinResult.rows[0].niu_status == 0) {
+                              const currentDate = new Date();
+                              const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
+                              var updateQuery = `UPDATE uin SET allocation_date='${moment().format("YYYY-MM-DD")}', allocation_time='${moment().format("YYYY-MM-DD HH:mm:ss")}', niu_status=${1} WHERE uin = ${uinResult.rows[0].uin}`;
+                              var updateResult = await runSql(pool, updateQuery, []);
+                              error_id = 0;
+                            }
+                            else {
+                              error_id = 1;// Duplicate NIU Number
+                            }
+                          }
+                          else {
+                            error_id = 3; //Wrong NIU Location Allocation
+                          }
+                        } else {
+                          error_id = 2; //Wrong NIU Number
+                        }
+                      }
+                      else
+                        error_id = 4; //Lenght not equal 10.
+
+
+                      let error_date = formatDate(new Date());
 
                       queryCivilRegisterInsert += `('${forms[i].gr_info.numero_declaration}', '${forms[i].info_enfant.prenom_enfant}', '${forms[i].info_enfant.nom_enfant}', '${formatDate(forms[i].info_enfant.date_naissance)}', '${forms[i].info_enfant.heure_naissance}', '${forms[i].info_enfant.b_location}', '${forms[i].info_enfant.sexe_enfant}', '${forms[i].info_enfant.parent_marie}', '${forms[i].info_enfant.meme_residence}', '${forms[i].info_enfant.name_health_center == null || forms[i].info_enfant.name_health_center == 0 ? 0 : 1}', '${forms[i].info_mere.prenom_mere}', '${forms[i].info_enfant.name_health_center}', '${forms[i].info_enfant.name_domicile}', '${forms[i].info_mere.region_mere}', '${forms[i].info_mere.district_mere}', '${forms[i].info_mere.commune_mere}', '${forms[i].info_mere.fokontany_mere}'),`;
                     }
@@ -883,7 +919,7 @@ module.exports = {
                           reject(isNullOrEmpty(error.message) ? error : error.message, null);
                         });
                       var queryPicCertificateInsert = "INSERT INTO attached_document (cr_id, document_name, document_type, date_created, time_created, document_path) VALUES";
-                      queryPicCertificateInsert += `(${childsInfo[i].id},'pic_certificate','jpg','${formatDate(forms[i].gr_info.date_declaration)}','${forms[i].info_enfant.heure_naissance}','${DBFileSavePathCertificate}')`;
+                      queryPicCertificateInsert += `(${childsInfo[i].id},'pic_certificate','jpg','${moment().format("YYYY-MM-DD")}','${moment().format("HH:mm:ss")}','${DBFileSavePathCertificate}')`;
                       queryPicCertificateInsert += " RETURNING id";
                       var resultPicCertificateInsert = await runSql(pool, queryPicCertificateInsert, []);
 
@@ -910,20 +946,18 @@ module.exports = {
                         });
 
                       var queryPicRegisterInsert = "INSERT INTO attached_document (cr_id, document_name, document_type, date_created, time_created, document_path) VALUES";
-                      queryPicRegisterInsert += `(${childsInfo[i].id},'picture_register','jpg','${formatDate(forms[i].gr_info.date_declaration)}','${forms[i].info_enfant.heure_naissance}','${DBFileSavePathRegister}')`;
+                      queryPicRegisterInsert += `(${childsInfo[i].id},'picture_register','jpg','${moment().format("YYYY-MM-DD")}','${moment().format("HH:mm:ss")}','${DBFileSavePathRegister}')`;
                       queryPicRegisterInsert += " RETURNING id";
                       var resultPicRegisterInsert = await runSql(pool, queryPicRegisterInsert, []);
                     }
-                    const currentDate = new Date();
-                    const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
 
                     var insertQuery = 'INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)';
                     var insertResult = await runSql(pool, insertQuery, [
-                      currentDate.toISOString().substring(0, 19).replace('T', ' '),
+                      moment().format("YYYY-MM-DD"),
                       childsInfo.length,
                       "ODK",
                       "//fiche_declaration_mg_commune",
-                      formattedTime,
+                      moment().format("YYYY-MM-DD HH:mm:ss"),
                       "ODK"
                     ]);
                     resolve("Data entered");
@@ -1308,6 +1342,8 @@ module.exports = {
 
       getQuery += ` LIMIT ${limit} OFFSET ${offset}`;
 
+      console.log(getQuery)
+      console.log(countQuery)
       let [getResult, countResult] = await Promise.all([
         runSql(pool, getQuery, []),
         runSql(pool, countQuery, [])
