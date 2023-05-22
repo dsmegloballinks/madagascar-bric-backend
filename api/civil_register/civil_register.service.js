@@ -1298,6 +1298,7 @@ module.exports = {
 
       const uinInsertQuery = `INSERT INTO uin (uin, code_commune, niu_status) VALUES ${uinInsertValues.join(',')}`;
 
+      let filename = filePath.split("/");
       try {
         // Execute the query and handle the result
         await runSql(pool, uinInsertQuery, []);
@@ -1306,7 +1307,7 @@ module.exports = {
           moment().format("YYYY-MM-DD"),
           result.length,
           "FILE",
-          "/" + Paths.Paths.FILE + "/" + data,
+          "/" + Paths.Paths.FILE + "/" + filename[filename.length - 1],
           moment().format("YYYY-MM-DD HH:mm:ss"),
           "FILE"
         ]);
@@ -1317,8 +1318,7 @@ module.exports = {
     } catch (error) {
       return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
     }
-  },
-
+  },  
   getAllUin: async (niuStatus, commune, page, limit, callBack) => {
     try {
       const offset = (page - 1) * limit;
