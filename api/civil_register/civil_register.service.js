@@ -66,15 +66,18 @@ module.exports = {
       return callBack(error);
     }
   },
-  getAllUser: async (page, limit, callBack) => {
+  getAllUser: async (page, limit, email, callBack) => {
     try {
       const offset = (page - 1) * limit;
       const countQuery = "SELECT COUNT(*) FROM access_control";
       const countResult = await runSql(pool, countQuery);
-
       const selectQuery = "SELECT * FROM access_control ORDER BY user_id DESC LIMIT $1 OFFSET $2";
       const selectResult = await runSql(pool, selectQuery, [limit, offset]);
 
+      var whereClause = " where 1=1 ";
+      if (!isNullOrEmpty(email)) {
+        whereClause += ` AND email = '${email}'`;
+      }
       const data = {
         total_count: countResult.rows[0].count,
         page_number: page,
@@ -417,7 +420,7 @@ module.exports = {
             } else {
               result[i][17] = 1;
             } //info_enfant-name_health_center queery to ber change to save yes or no
-            if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_enfant_name_toooooooooooo beeeeeeeeeeeeeee filledddddddddddddddddddddddddd
+            if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_enfant-b_location
             if (isNullOrEmpty(result[i][17])) { result[i][17] = null; } //info_enfant-name_health_center
             if (isNullOrEmpty(result[i][18])) { result[i][18] = null; } //info_enfant-name_domicile
             if (isNullOrEmpty(result[i][25])) { result[i][25] = null; } //info_enfant-region_naissance mothers
@@ -733,7 +736,7 @@ module.exports = {
                 })
                   .then(async response => {
                     forms = response.data.value;
-                    resolve(forms)
+                    // resolve(forms)
                     let resultCivilRegisterInsert;
                     let resultCivilRegisterInsertFather;
                     let resultCivilRegisterInsertMother;
@@ -981,15 +984,33 @@ module.exports = {
       return callBack(isNullOrEmpty(error.message) ? error : error.message, null);
     }
   },
-  getChildCount: async (sDate, callBack) => {
+  getChildCount: async (sDate, regionCode, districtCode, communeCode, fokontanyCode, callBack) => {
     try {
       // VALID_DATE_FORMAT yyyy-mm-dd //
 
       var response = {};
       var year = sDate.split("-")[0];
       var month = sDate.split("-")[1];
+
+      var whereClause = "where 1=1";
+      if (!isNullOrEmpty(regionCode)) {
+        whereClause += ` AND cr.region_of_birth = '${regionCode}'`
+      }
+
+      if (!isNullOrEmpty(districtCode)) {
+        whereClause += ` AND cr.district_of_birth = '${districtCode}'`
+      }
+
+      if (!isNullOrEmpty(communeCode)) {
+        whereClause += ` AND cr.commune_of_birth = '${communeCode}'`
+      }
+
+      if (!isNullOrEmpty(fokontanyCode)) {
+        whereClause += ` AND cr.fokontany_of_birth = '${fokontanyCode}'`
+      }
       //#region OverAll
-      var queryOverAllCount = "SELECT count(child_cr_id) FROM registration_form";
+      var queryOverAllCount = `SELECT count(child_cr_id) FROM registration_form LEFT JOIN civil_register as cr on cr.id = registration_form.child_cr_id  ${whereClause}`;
+
       var resultOverAllCount = await runSql(pool, queryOverAllCount, []);
       response.over_all_count = resultOverAllCount.rows[0].count;
       //#endregion
@@ -1020,7 +1041,7 @@ module.exports = {
 
       return callBack(null, response);
     } catch (error) {
-      return callBack(error, null);
+      return callBack(error.message, null);
     }
   },
   getFokontany: async (searchParams, callBack) => {
@@ -1318,7 +1339,7 @@ module.exports = {
     } catch (error) {
       return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
     }
-  },  
+  },
   getAllUin: async (niuStatus, commune, page, limit, callBack) => {
     try {
       const offset = (page - 1) * limit;
