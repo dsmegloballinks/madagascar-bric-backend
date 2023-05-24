@@ -35,7 +35,7 @@ module.exports = {
   getAll: async (req, res) => {
     let page = 1;
     let limit = 10;
-
+    const email = req.query.email;
     if (req.query.page) {
       page = req.query.page;
     }
@@ -45,7 +45,7 @@ module.exports = {
     }
 
     try {
-      getAll(page, limit, (error, result) => {
+      getAll(page, limit, email, (error, result) => {
         if (error) {
           const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
           return res.json(data);
@@ -127,8 +127,11 @@ module.exports = {
       limit = req.query.limit;
     }
 
-    const id = req.query.id;
-    getAppointmentByRegistarId(page, limit, id, (err, result, totalCount, pageSize) => {
+    let id = req.query.id;
+    let location = req.query.location;
+    let date = req.query.date;
+
+    getAppointmentByRegistarId(page, limit, id, location, date, (err, result, totalCount, pageSize) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });

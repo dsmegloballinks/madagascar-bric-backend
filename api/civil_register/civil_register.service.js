@@ -69,15 +69,17 @@ module.exports = {
   getAllUser: async (page, limit, email, callBack) => {
     try {
       const offset = (page - 1) * limit;
-      const countQuery = "SELECT COUNT(*) FROM access_control";
-      const countResult = await runSql(pool, countQuery);
-      const selectQuery = "SELECT * FROM access_control ORDER BY user_id DESC LIMIT $1 OFFSET $2";
-      const selectResult = await runSql(pool, selectQuery, [limit, offset]);
+      let countQuery = "SELECT COUNT(*) FROM access_control";
+      let selectQuery = "SELECT * FROM access_control  ";
 
-      var whereClause = " where 1=1 ";
+      var whereClause = " WHERE 1=1 ";
       if (!isNullOrEmpty(email)) {
-        whereClause += ` AND email = '${email}'`;
+        whereClause += ` AND email LIKE '%${email}%'`;
       }
+      selectQuery += whereClause + " ORDER BY user_id DESC LIMIT $1 OFFSET $2";
+      countQuery += whereClause;
+      const countResult = await runSql(pool, countQuery);
+      const selectResult = await runSql(pool, selectQuery, [limit, offset]);
       const data = {
         total_count: countResult.rows[0].count,
         page_number: page,
@@ -152,7 +154,7 @@ module.exports = {
       }
     );
   },
-  getAll: async (sDate, sEndDate, page, limit, region, moduleType, district, commune, fokontany, niuStatus, error_id, callback) => {
+  getAll: async (sDate, sEndDate, page, limit, region, name, moduleType, district, commune, fokontany, niuStatus, error_id, callback) => {
     try {
       const offset = (page - 1) * limit;
       let query = `SELECT DISTINCT cr.*, cr.given_name AS first_name, rf.child_cr_id, rf.dec_date, rf.dec_relation, rf.transcription_date, rf.lattitude, rf. longitude, mother.id as mother_cr_id, father_cr_id, declarant_cr_id FROM civil_register cr JOIN registration_form rf ON cr.id = rf.child_cr_id JOIN civil_register mother ON mother.id = rf.mother_cr_id `;
@@ -164,7 +166,9 @@ module.exports = {
       if (!isNullOrEmpty(region)) {
         whereClause += ` AND cr.region_of_birth = '${region}'`;
       }
-
+      if (!isNullOrEmpty(name)) {
+        whereClause += ` AND cr.given_name LIKE '%${name}%'`;
+      }
       if (!isNullOrEmpty(moduleType)) {
         whereClause += ` AND upload_excel_log.input_type = '${moduleType}'`;
       }
@@ -1009,7 +1013,7 @@ module.exports = {
         whereClause += ` AND cr.fokontany_of_birth = '${fokontanyCode}'`
       }
       //#region OverAll
-      var queryOverAllCount = `SELECT count(child_cr_id) FROM registration_form LEFT JOIN civil_register as cr on cr.id = registration_form.child_cr_id  ${whereClause}`;
+      var queryOverAllCount = `SELECT count(child_cr_id) FROM registration_form LEFT JOIN civil_register as cr on cr.id = registration_form.child_cr_id  ${whereClause} `;
 
       var resultOverAllCount = await runSql(pool, queryOverAllCount, []);
       response.over_all_count = resultOverAllCount.rows[0].count;
@@ -1340,32 +1344,33 @@ module.exports = {
       return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
     }
   },
-  getAllUin: async (niuStatus, commune, page, limit, callBack) => {
+  getAllUin: async (niuStatus, commune, page, limit, uin, callBack) => {
     try {
       const offset = (page - 1) * limit;
-      let getQuery = `SELECT uin.*, fokontany.libelle_commune AS commune_name
-      FROM uin
-      JOIN fokontany ON uin.code_commune = fokontany.code_commune`;
+      let getQuery = `SELECT uin.* AS commune_name FROM uin`;
+      //Left join fokontany ON uin.code_commune = fokontany.code_commune`;
       let countQuery = "SELECT COUNT(*) AS total_count FROM uin";
 
-      if (niuStatus || commune) {
-        getQuery += " WHERE";
-        countQuery += " WHERE";
+      // if (niuStatus || commune || uin) {
+        getQuery += " WHERE 1=1";
+        countQuery += " WHERE 1=1";
 
-        if (niuStatus) {
-          getQuery += ` niu_status = '${niuStatus}'`;
-          countQuery += ` niu_status = '${niuStatus}'`;
+        if (!isNullOrEmpty(uin)) {
+          getQuery += ` AND uin = ${uin}`
+          countQuery += ` AND uin = ${uin}`
+
         }
 
-        if (commune) {
-          if (niuStatus) {
-            getQuery += " AND";
-            countQuery += " AND";
-          }
-          getQuery += ` uin.code_commune = '${commune}'`;
-          countQuery += ` uin.code_commune = '${commune}'`;
+        if (!isNullOrEmpty(niuStatus)) {
+          getQuery += ` AND niu_status = '${niuStatus}'`;
+          countQuery += ` AND niu_status = '${niuStatus}'`;
         }
-      }
+
+        if (!isNullOrEmpty(commune)) {
+          getQuery += ` AND uin.code_commune = '${commune}'`;
+          countQuery += ` AND uin.code_commune = '${commune}'`;
+        }
+      // }
 
       getQuery += ` LIMIT ${limit} OFFSET ${offset}`;
 
@@ -1374,7 +1379,16 @@ module.exports = {
         runSql(pool, getQuery, []),
         runSql(pool, countQuery, [])
       ]);
-
+      var communeIds = getResult.rows.map(x => x.code_commune);
+      if(communeIds.length > 0)
+      {
+        var communeLabelQuery = `select DISTINCT ON (code_commune) code_commune, libelle_commune from fokontany where code_commune in (${communeIds})`;
+        var communeLabel = await runSql(pool, communeLabelQuery, []);
+        for (let i = 0; i < getResult.rows.length; i++) {
+          const element = getResult.rows[i];
+          element.libelle_commune = communeLabel.rows.filter(x => x.code_commune == element.code_commune)[0].libelle_commune;
+        }
+      }
       const totalRecords = countResult.rows[0].total_count;
 
       return callBack(null, getResult.rows, totalRecords);

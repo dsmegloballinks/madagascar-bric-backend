@@ -1,6 +1,7 @@
 const pool = require("../../config/database");
 const { runSql } = require("../../helper/helperfunctions");
-
+const { isNullOrEmpty } = require("../../helper/helperfunctions");
+const moment = require("moment");
 module.exports = {
 
   create: async (data, callBack) => {
@@ -32,27 +33,32 @@ module.exports = {
     }
   },
 
-  getAll: async (page, limit, callBack) => {
+  getAll: async (page, limit, email, callBack) => {
     try {
       const offset = (page - 1) * limit;
-      let countQuery = 'SELECT COUNT(*) FROM registrar_register WHERE 1=1';
-      let selectQuery = 'SELECT * from registrar_register';
+      let countQuery = "SELECT COUNT(*) FROM registrar_register";
+      let selectQuery = "SELECT * FROM registrar_register  ";
 
+      var whereClause = " WHERE 1=1 ";
+      if (!isNullOrEmpty(email)) {
+        whereClause += ` AND office_email LIKE '%${email}%'`;
+      }
+      selectQuery += whereClause + " ORDER BY user_id DESC LIMIT $1 OFFSET $2";
+      countQuery += whereClause;
       const countResult = await runSql(pool, countQuery);
-      const selectResult = await runSql(pool, selectQuery + ' ORDER BY registrar_register.id DESC LIMIT $1 OFFSET $2', [limit, offset]);
-
+      const selectResult = await runSql(pool, selectQuery, [limit, offset]);
       const data = {
         total_count: countResult.rows[0].count,
         page_number: page,
         page_size: limit,
         data: selectResult.rows,
       };
-
       return callBack(null, data);
     } catch (error) {
       return callBack(error);
     }
   },
+
 
   delete1: async (id, callBack) => {
     try {
@@ -129,17 +135,31 @@ module.exports = {
     }
   },
 
-  getAppointmentByRegistarId: async (page, limit, id, callBack) => {
+  getAppointmentByRegistarId: async (page, limit, id, location, date, callBack) => {
     try {
       const offset = (page - 1) * limit;
-      const query = "SELECT * FROM appointment_registrar WHERE registrar_id = $1 LIMIT $2 OFFSET $3";
-      const result = await pool.query(query, [id, limit, offset]);
-      const totalCountQuery = "SELECT count(*) as total_count FROM appointment_registrar WHERE registrar_id = $1";
-      const totalCountResult = await pool.query(totalCountQuery, [id]);
+      let query = "SELECT * FROM appointment_registrar WHERE registrar_id = $1";
+      let totalCountQuery = "SELECT count(*) as total_count FROM appointment_registrar WHERE registrar_id = $1";
+
+      if (!isNullOrEmpty(location)) {
+        query += ` AND location LIKE '%${location}%'`;
+        totalCountQuery += ` AND location LIKE '%${location}%'`;
+      }
+
+      if (!isNullOrEmpty(date)) {
+        query += ` AND appointment_date = '${moment(date).format("YYYY-MM-DD")}'`;
+        totalCountQuery += ` AND appointment_date = '${moment(date).format("YYYY-MM-DD")}'`;
+      }
+
+      query += " LIMIT $2 OFFSET $3";
+      totalCountQuery += " LIMIT $2 OFFSET $3";
+      
+      let result = await runSql(pool, query, [id, limit, offset]);
+      let totalCountResult = await runSql(pool, totalCountQuery, [id, limit, offset]);
       const totalCount = totalCountResult.rows[0].total_count;
       return callBack(null, result.rows, totalCount, limit);
     } catch (error) {
-      return callBack(error, null);
+      return callBack(error.message, null);
     }
   },
 

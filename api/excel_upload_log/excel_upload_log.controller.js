@@ -50,7 +50,7 @@ module.exports = {
     let page = 1;
     let limit = 10;
     let moduleType = '';
-
+    let file = req.query.file;
     if (req.query.page) {
       page = req.query.page;
     }
@@ -64,7 +64,7 @@ module.exports = {
     }
 
     try {
-      getAllLogs(page, limit, moduleType, (error, result) => {
+      getAllLogs(page, limit, moduleType, file, (error, result) => {
         if (error) {
           const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
           return res.json(data);

@@ -105,30 +105,39 @@ module.exports = {
       return callBack(isNullOrEmpty(error.message) ? error : error.message, null);
     }
   },
-  getAllLogs: async (page, limit, moduleType, callBack) => {
+  getAllLogs: async (page, limit, moduleType, file, callBack) => {
     try {
       const offset = (page - 1) * limit;
       let countQuery = 'SELECT COUNT(*) FROM excel_upload_log WHERE 1=1';
       let selectQuery = 'SELECT * FROM excel_upload_log WHERE 1=1';
-
+  
       if (moduleType) {
         countQuery += ` AND module_type LIKE '%${moduleType}%'`;
         selectQuery += ` AND module_type LIKE '%${moduleType}%'`;
       }
+  
+      if (file) {
+        // Extract the file name from the provided file path
+        const fileName = file.substring(file.lastIndexOf('/') + 1);
+        countQuery += ` AND file LIKE '%${fileName}%'`;
+        selectQuery += ` AND file LIKE '%${fileName}%'`;
+      }
+      
       const countResult = await runSql(pool, countQuery);
       const selectResult = await runSql(pool, selectQuery + ' ORDER BY id DESC LIMIT $1 OFFSET $2', [limit, offset]);
-
+  
       const data = {
         total_count: countResult.rows[0].count,
         page_number: page,
         page_size: limit,
         data: selectResult.rows,
       };
-
+  
       return callBack(null, data);
     } catch (error) {
       return callBack(error);
     }
   }
+  
 
 };
