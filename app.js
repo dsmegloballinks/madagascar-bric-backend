@@ -3,17 +3,8 @@ const express = require('express');
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
-const { Server } = require("socket.io");
-const io = new Server(server);
-const crypto = require("crypto");
 const pool = require("./config/database");
 const cors = require("cors");
-
-
-function generateUniqueId() {
-  return crypto.randomBytes(16).toString("hex");
-}
-
 
 const civilRegisterRouter = require("./api/civil_register/civil_register.router");
 const excelRouter = require("./api/excel_upload_log/excel_upload_log.router");
