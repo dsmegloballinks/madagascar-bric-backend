@@ -1,12 +1,12 @@
 const router = require("express").Router();
 const {
-  convertFile, uploadFile, getAllLog, getAllLogs
+  convertFile, uploadFile, getAllLogs
 
 } = require("./excel_upload_log.controller");
 const Paths = require("../../helper/constants/Paths");
 
 const multer = require("multer");
-/////
+
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, `./upload/${Paths.Paths.FILE}`);
@@ -15,7 +15,7 @@ var storage = multer.diskStorage({
     cb(null, file.fieldname + "_" + Date.now() + "_" + file.originalname);
   },
 });
-//not a variable like a middlware
+
 var upload = multer({
   storage: storage,
 }).single("file");

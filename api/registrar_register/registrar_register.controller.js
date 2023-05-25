@@ -2,7 +2,7 @@ const {
 
   create,
   getAll,
-  delete1,
+  delete_rr,
   updateRegistrar,
   createAppointment,
   getAppointmentByRegistarId,
@@ -58,7 +58,7 @@ module.exports = {
       return res.json(data);
     }
   },
-  delete2: async (req, res) => {
+  delete_rr: async (req, res) => {
     const { id } = req.query;
 
     if (!id) {
@@ -67,7 +67,7 @@ module.exports = {
     }
 
     try {
-      delete1(id, (error, deleteResult) => {
+      delete_rr(id, (error, deleteResult) => {
         if (error) {
           const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
           return res.json(data);
@@ -147,9 +147,7 @@ module.exports = {
     });
   },
   updateLastAppointment: async (req, res) => {
-    // const id = req.params.id;
     const data = req.body;
-
     try {
       updateLastAppointment(data, (err, result) => {
         if (err) {
@@ -165,8 +163,4 @@ module.exports = {
       return res.json(responseData);
     }
   }
-
-
-
-
 };

@@ -1,8 +1,5 @@
-const fs = require('fs');
-
 const {
   create,
-  getById,
   getAll,
   update,
   deleteById,
@@ -17,12 +14,12 @@ const {
   signUp,
   updateUser,
   deleteUser,
-  getAllUser,
+  getAllUsers,
   updateUserStatus,
   fetchSaveToDatabase,
   getCommune,
   createUin,
-  getAllUin,
+  getAllUins,
 
 
 } = require("./civil_register.service");
@@ -114,7 +111,7 @@ module.exports = {
       return res.json(data);
     }
   },
-  getAllUser: async (req, res) => {
+  getAllUsers: async (req, res) => {
     let page = 1;
     let limit = 10;
     const email = req.query.email;
@@ -126,7 +123,7 @@ module.exports = {
     }
 
     try {
-      getAllUser(page, limit, email, (error, result) => {
+      getAllUsers(page, limit, email, (error, result) => {
         if (error) {
           const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
           return res.json(data);
@@ -176,7 +173,6 @@ module.exports = {
   },
   getById: (req, res) => {
     const id = req.query.id;
-    console.log("req", req);
     getById(id, (err, results) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
@@ -475,7 +471,7 @@ module.exports = {
     }
 
     try {
-      getAllUin(niuStatus, commune, page, limit, uin, (error, results, totalRecords) => {
+      getAllUins(niuStatus, commune, page, limit, uin, (error, results, totalRecords) => {
         if (error) {
           const data = common.error(error, Messages.MSG_INVALID_DATA, ErrorCode.failed);
           return res.json({ data });

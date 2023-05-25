@@ -31,9 +31,5 @@ module.exports = {
                 MSG_LOGIN_SUCCESS: "Login successful.",
                 MSG_LOGIN_FAILED: "Login unsuccessful.",
                 MSG_PASSWORD_LENGTH: "Password Length must be greater than 7.",
-                MSG_INVALID_VOUCHER: "Voucher Invalid or Expired.",
-                MSG_VALID_VOUCHER: "Voucher Valid.",
-                MSG_INVALID_MIN_ORDER_PRICE: "Minimum Order Price is Less.",
-                MSG_RIDER_ASSIGNED: "Rider Assigned Successfully.",
         }
 }

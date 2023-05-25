@@ -14,17 +14,17 @@ module.exports = {
     });
   },
 
-  pagination: function (data, total_records, page, limit ) {
+  pagination: function (data, total_records, page, limit) {
     return ({
       error_code: Enums.ErrorCode.success,
       success: true,
       status: HttpStatus.ok,
       message: Messages.MSG_DATA_FOUND,
-      total_records : total_records,
-      page_number : parseInt(page),
-      total_pages : Math.ceil(total_records/limit),
+      total_records: total_records,
+      page_number: parseInt(page),
+      total_pages: Math.ceil(total_records / limit),
       result: data,
-      
+
     });
   },
   successList: function (list = [], message, error_code) {
@@ -42,7 +42,6 @@ module.exports = {
       error_code: error_code,
       success: false,
       message: message,
-      // result : status_code
     });
   },
 }

@@ -60,13 +60,13 @@ module.exports = {
   },
 
 
-  delete1: async (id, callBack) => {
+  delete_rr: async (id, callBack) => {
     try {
       const deleteQuery = "DELETE FROM appointment_registrar WHERE registrar_id = $1";
       await runSql(pool, deleteQuery, [id]);
 
-      const deleteQuery2 = "DELETE FROM registrar_register WHERE id = $1";
-      const deleteResult = await runSql(pool, deleteQuery2, [id]);
+      const deleteQuery_rr = "DELETE FROM registrar_register WHERE id = $1";
+      const deleteResult = await runSql(pool, deleteQuery_rr, [id]);
 
       return callBack(null, deleteResult.rows[0]);
     } catch (error) {
@@ -153,7 +153,7 @@ module.exports = {
 
       query += " LIMIT $2 OFFSET $3";
       totalCountQuery += " LIMIT $2 OFFSET $3";
-      
+
       let result = await runSql(pool, query, [id, limit, offset]);
       let totalCountResult = await runSql(pool, totalCountQuery, [id, limit, offset]);
       const totalCount = totalCountResult.rows[0].total_count;

@@ -2,7 +2,6 @@ const router = require("express").Router();
 const {
   create,
   getAll,
-  update,
   deleteById,
   convertFile,
   getChildCount,
@@ -15,12 +14,11 @@ const {
   signUp,
   updateUser,
   deleteUser,
-  getAllUser,
+  getAllUsers,
   updateUserStatus,
   fetchFile,
   updateController,
   getCommune,
-  createUin,
   createUinController,
   getAllUinController,
 } = require("./civil_register.controller");
@@ -58,7 +56,7 @@ router.post("/delete", deleteById);
 router.get("/get-lat-long", getLatLong);
 router.get("/get-seven-day-graph-query", getSevenDayGraphQuery);
 router.post("/delete-user", deleteUser);
-router.get("/get-all-users", getAllUser);
+router.get("/get-all-users", getAllUsers);
 router.get("/fetch-file", fetchFile);
 router.post("/upload-uin-file", upload, createUinController);
 router.get("/get-uin", getAllUinController);

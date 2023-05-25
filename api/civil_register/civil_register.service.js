@@ -66,7 +66,7 @@ module.exports = {
       return callBack(error);
     }
   },
-  getAllUser: async (page, limit, email, callBack) => {
+  getAllUsers: async (page, limit, email, callBack) => {
     try {
       const offset = (page - 1) * limit;
       let countQuery = "SELECT COUNT(*) FROM access_control";
@@ -211,16 +211,13 @@ module.exports = {
       for (let x = 0; x < resultCount; x++) {
         const motherQuery = `SELECT * FROM civil_register where id = ${results.rows[x].mother_cr_id}`;
         var motherResults = await runSql(pool, motherQuery, []);
-        // if (motherResults.rows[0].error_id > 0)
-        //   continue;
+
         const fatherQuery = `SELECT * FROM civil_register where id = ${results.rows[x].father_cr_id}`;
         var fatherResults = await runSql(pool, fatherQuery, []);
-        // if (fatherResults.rows[0].error_id > 0)
-        //   continue;
+
         const DecQuery = `SELECT * FROM civil_register where id = ${results.rows[x].declarant_cr_id}`;
         var DecResults = await runSql(pool, DecQuery, []);
-        // if (DecResults.rows[0].error_id > 0)
-        //   continue;
+
         var SQuery = `SELECT libelle_fokontany AS Fokontonay_Name, libelle_region AS Region_name, libelle_district AS District_name, libelle_commune AS Commune_name from fokontany where id = ${results.rows[x].id} `;
         var resultQuery = await runSql(pool, SQuery, []);
         //-- mother--//
@@ -279,7 +276,7 @@ module.exports = {
   },
   update: async (data, cr_id, callBack) => {
     try {
-      // console.log("crResult :", data.uin);
+
       let crQuery = `SELECT * FROM civil_register WHERE id = ${cr_id}`;
       let crresult = await runSql(pool, crQuery, []);
       if (crresult.rows.length === 0) {
@@ -333,10 +330,8 @@ module.exports = {
       [],
       (error, results) => {
         if (error) {
-          //pool.endPool();
           return callBack(error);
         }
-        //pool.endPool();
         return callBack(null, results);
       }
     );
@@ -378,36 +373,6 @@ module.exports = {
             reject("error file reading file for data gathering ")
           }
 
-          // let x = [];
-          // for (let i = 1; i < result.length; i++) {
-          //   // x.push(result[i][20]);
-          //   var uinQuery = "SELECT * FROM uin where code_commune = " + result[i][27]; //+ " OR (start_index <= " + result[i][20] + " AND end_index >= " + result[i][20] + ")";
-          //   var uinResult = await runSql(pool, uinQuery, []);
-          //   // resolve(uinResult);
-
-          //   // x.push(uinResult.rows);
-          //   if (uinResult.rows.length > 0) {
-          //     for (let j = 0; j < uinResult.rows.length; j++) {
-          //       if (BigInt(uinResult.rows[j].start_index) <= BigInt(result[i][20]) && BigInt(uinResult.rows[j].end_index) >= BigInt(result[i][20])) {
-          //         var duplicateCheckQuery = "SELECT * FROM civil_register where uin = '" + result[i][20] + "'";
-          //         var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
-          //         if (duplicateCheckResult.rows.length > 0)
-          //           x.push(result[i][20] + " => " + uinResult.rows[j].code_commune + " => Duplicate NIU Number")
-          //         else
-          //           x.push(result[i][20] + " => " + uinResult.rows[j].code_commune + " => VALID")
-
-          //       }
-          //       else //if (uinResult.rows[j].start_index <= result[i][20] && uinResult.rows[j].end_index >= result[i][20])
-          //         x.push(result[i][20] + " => " + uinResult.rows[j].code_commune + " => Wrong NIU Number")
-          //       // else
-          //       //   x.push(result[i][20] + " => " + uinResult.rows[j].code_commune + " => Wrong NIU Number/Duplicate NIU Number")
-          //     }
-          //   } else {
-          //     x.push(result[i][20] + " => " + uinResult.rows[j].code_commune + " => Wrong NIU Location Allocation")
-          //   }
-          // }
-          // resolve(x);
-
           var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, error_id, error_date) VALUES";
           for (let i = 1; i < result.length; i++) {
             if (isNullOrEmpty(result[i][69])) { result[i][69] = null; } //info_enfant-niu
@@ -448,27 +413,11 @@ module.exports = {
                   }
                   else {
                     error_id = 1;// Duplicate NIU Number
-                    // duplicateFatherResult.push(duplicateCheckResult)
                   }
                 }
                 else {
                   error_id = 3; //Wrong NIU Location Allocation
                 }
-                // for (let j = 0; j < uinResult.rows.length; j++) {
-                //   if (BigInt(uinResult.rows[j].start_index) <= BigInt(result[i][32]) && BigInt(uinResult.rows[j].end_index) >= BigInt(result[i][32])) {
-                //     var duplicateCheckQuery = "SELECT * FROM civil_register where uin = '" + result[i][32] + "'";
-                //     var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
-                //     if (duplicateCheckResult.rows.length > 0) {
-                //       error_id = 1;// Duplicate NIU Number
-                //       duplicateFatherResult.push(duplicateCheckResult)
-                //     }
-                //     else
-                //       error_id = 0;// VALID
-
-                //   }
-                //   else
-                //   error_id = 3; //Wrong NIU Location Allocation
-                // }
               } else {
                 error_id = 2; //Wrong NIU Number
               }
@@ -553,29 +502,6 @@ module.exports = {
             if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_mere-fokontany_mere
             if (isNullOrEmpty(result[i][29])) { result[i][29] = null; } //info_mere-profession_mere
 
-            // let error_id = 0;
-            // var uinQuery = "SELECT * FROM uin where code_commune = " + result[i][20];
-            // var uinResult = await runSql(pool, uinQuery, []);
-            // if (uinResult.rows.length > 0) {
-            //   for (let j = 0; j < uinResult.rows.length; j++) {
-            //     if (BigInt(uinResult.rows[j].start_index) <= BigInt(result[i][27]) && BigInt(uinResult.rows[j].end_index) >= BigInt(result[i][27])) {
-            //       var duplicateCheckQuery = "SELECT * FROM civil_register where uin = '" + result[i][27] + "'";
-            //       var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
-            //       if (duplicateCheckResult.rows.length > 0) {
-            //         error_id = 1;// Duplicate NIU Number
-            //         duplicateFatherResult.push(duplicateCheckResult)
-            //       }
-            //       else
-            //         error_id = 0;// VALID
-
-            //     }
-            //     else
-            //       error_id = 2; //Wrong NIU Number
-            //   }
-            // } else {
-            //   error_id = 3; //Wrong NIU Location Allocation
-            // }
-
             let error_id = 0;
             if (result[i][32].length == 10) {
               var uinQuery = "SELECT * FROM uin where uin = " + result[i][27];
@@ -623,33 +549,6 @@ module.exports = {
             if (isNullOrEmpty(result[i][45])) { result[i][45] = null; } // info_declarant-info_declarant_2-nom_declarant
             if (isNullOrEmpty(result[i][47])) { result[i][47] = null; } result[i][47] = formatDate(result[i][47]); //info_declarant-info_declarant_2-date_naissance_declarant
             if (isNullOrEmpty(result[i][48])) { result[i][48] = null; } // info_declarant-info_declarant_2-address_declarant
-            // if (isNullOrEmpty(result[i][70])) { result[i][70] = null; } // info_declarant-commume
-
-            // let error_id = 0;
-            // var uinQuery = "SELECT * FROM uin where code_commune = " + result[i][70];
-            // var uinResult = await runSql(pool, uinQuery, []);
-            // if (uinResult.rows.length > 0) {
-            //   for (let j = 0; j < uinResult.rows.length; j++) {
-            //     if (BigInt(uinResult.rows[j].start_index) <= BigInt(result[i][44]) && BigInt(uinResult.rows[j].end_index) >= BigInt(result[i][44])) {
-            //       var duplicateCheckQuery = "SELECT * FROM civil_register where uin = '" + result[i][44] + "'";
-            //       var duplicateCheckResult = await runSql(pool, duplicateCheckQuery, []);
-            //       if (duplicateCheckResult.rows.length > 0) {
-            //         error_id = 1;// Duplicate NIU Number
-            //         duplicateFatherResult.push(duplicateCheckResult)
-            //       }
-            //       else
-            //         error_id = 0;// VALID
-
-            //     }
-            //     else
-            //       error_id = 2; //Wrong NIU Number
-            //   }
-            // } else {
-            //   error_id = 3; //Wrong NIU Location Allocation
-            // }
-
-            // let error_date = formatDate(new Date());
-            // if (error_id != 1)
 
             queryCivilRegisterInsertDeclarant += `('${result[i][44]}', '${result[i][46]}', '${result[i][45]}', '${result[i][47]}', '${result[i][48]}','${result[i][70]}'),`;
           }
@@ -680,16 +579,14 @@ module.exports = {
               var declarantId = delarantsInfo[indexDeclarant].id;
 
 
-              //43 = info_declarant-lien_declarant
-              //7 = gr_info-date_declaration
-              //8 = gr_info-date_transcription
-
-              //53 = lieu_signature
+              //index 43 = info_declarant-lien_declarant
+              //index 7 = gr_info-date_declaration
+              //index 8 = gr_info-date_transcription
+              //index 53 = lieu_signature
               queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${resultCopy[indexChildFileData][43]}','${formatDate(resultCopy[indexChildFileData][7])}','${formatDate(resultCopy[indexChildFileData][8])}','${resultCopy[indexChildFileData][50]}','${lattitude}','${longitude}'),`
             }
           }
           queryRegistrationFormInsert = removeCommaAtEnd(queryRegistrationFormInsert);
-          // queryRegistrationFormInsert += " RETURNING id";
           var resultRegistrationFormInsertDeclarant = await runSql(pool, queryRegistrationFormInsert, []);
           const currentDate = new Date();
           const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
@@ -748,29 +645,6 @@ module.exports = {
 
                     var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth) VALUES";
                     for (let i = 0; i < forms.length; i++) {
-                      // if (isNullOrEmpty(result[i][6])) { result[i][6] = null; }
-                      // if (isNullOrEmpty(result[i][10])) { result[i][10] = null; } //info_enfant-prenom_enfant
-                      // if (isNullOrEmpty(result[i][9])) { result[i][9] = null; } //info_enfant-nom_enfant
-                      // if (isNullOrEmpty(result[i][11])) { result[i][11] = null; } result[i][11] = formatDate(result[i][11]);//info_enfant-date_naissance
-                      // if (isNullOrEmpty(result[i][12])) { result[i][12] = null; } //info_enfant-heure_naissance
-                      // if (isNullOrEmpty(result[i][16])) { result[i][16] = null; } //info_enfant-b_location
-                      // if (isNullOrEmpty(result[i][13])) { result[i][13] = null; } //info_enfant-sexe_enfant
-                      // if (isNullOrEmpty(result[i][14])) { result[i][14] = null; } //info_enfant-parent_marie
-                      // if (isNullOrEmpty(result[i][15])) { result[i][15] = null; } //info_enfant-meme_residence
-                      // if (result[i][17] === null || result[i][17].length === 0) {
-                      //   result[i][17] = 0;
-                      // } else {
-                      //   result[i][17] = 1;
-                      // } //info_enfant-name_health_center queery to ber change to save yes or no
-                      // if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_enfant_name_toooooooooooo beeeeeeeeeeeeeee filledddddddddddddddddddddddddd
-                      // if (isNullOrEmpty(result[i][17])) { result[i][17] = null; } //info_enfant-name_health_center
-                      // if (isNullOrEmpty(result[i][18])) { result[i][18] = null; } //info_enfant-name_domicile
-                      // if (isNullOrEmpty(result[i][25])) { result[i][25] = null; } //info_enfant-region_naissance mothers
-                      // if (isNullOrEmpty(result[i][26])) { result[i][26] = null; } //info_enfant-district_naissance mothers
-                      // if (isNullOrEmpty(result[i][27])) { result[i][27] = null; } //info_enfant-commune_naissance mothers
-                      // if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_enfant-fokontany mothers
-
-
                       let error_id = 0;
                       if (result[i][32].length == 10) {
                         var uinQuery = "SELECT * FROM uin where uin = " + result[i][69];
@@ -799,7 +673,7 @@ module.exports = {
                         error_id = 4; //Lenght not equal 10.
 
 
-                      let error_date = formatDate(new Date());
+                      // let error_date = formatDate(new Date());
 
                       queryCivilRegisterInsert += `('${forms[i].gr_info.numero_declaration}', '${forms[i].info_enfant.prenom_enfant}', '${forms[i].info_enfant.nom_enfant}', '${formatDate(forms[i].info_enfant.date_naissance)}', '${forms[i].info_enfant.heure_naissance}', '${forms[i].info_enfant.b_location}', '${forms[i].info_enfant.sexe_enfant}', '${forms[i].info_enfant.parent_marie}', '${forms[i].info_enfant.meme_residence}', '${forms[i].info_enfant.name_health_center == null || forms[i].info_enfant.name_health_center == 0 ? 0 : 1}', '${forms[i].info_mere.prenom_mere}', '${forms[i].info_enfant.name_health_center}', '${forms[i].info_enfant.name_domicile}', '${forms[i].info_mere.region_mere}', '${forms[i].info_mere.district_mere}', '${forms[i].info_mere.commune_mere}', '${forms[i].info_mere.fokontany_mere}'),`;
                     }
@@ -811,17 +685,6 @@ module.exports = {
                     var queryCivilRegisterInsertFather = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession, is_residence_same) VALUES";
                     // // ######## FOR FATHER ######## \\
                     for (let i = 0; i < forms.length; i++) {
-                      //   if (isNullOrEmpty(result[i][32])) { result[i][32] = null; } //info_pere-niu_pere
-                      //   if (isNullOrEmpty(result[i][34])) { result[i][34] = null; } //info_pere-prenom_pere
-                      //   if (isNullOrEmpty(result[i][33])) { result[i][33] = null; } //info_pere-nom_pere 
-                      //   if (isNullOrEmpty(result[i][35])) { result[i][35] = null; } result[i][35] = formatDate(result[i][35]); //info_pere-date_naissance_pere
-                      //   if (isNullOrEmpty(result[i][38])) { result[i][38] = null; } //info_pere-info_pere_2-region_pere
-                      //   if (isNullOrEmpty(result[i][39])) { result[i][39] = null; } //info_pere-info_pere_2-district_pere
-                      //   if (isNullOrEmpty(result[i][40])) { result[i][40] = null; } //info_pere-info_pere_2-commune_pere
-                      //   if (isNullOrEmpty(result[i][41])) { result[i][41] = null; } //info_pere-info_pere_2-fokontany_pere
-                      //   if (isNullOrEmpty(result[i][42])) { result[i][42] = null; } //info_pere-profession_pere
-                      //   if (isNullOrEmpty(result[i][36])) { result[i][36] = null; } //info_pere-mother_father_same_address
-
                       if (forms[i].info_pere.niu_pere && forms[i].info_pere.prenom_pere && forms[i].info_pere.nom_pere && forms[i].info_pere.date_naissance_pere && forms[i].info_pere.info_pere_2.region_pere && forms[i].info_pere.info_pere_2.district_pere && forms[i].info_pere.info_pere_2.commune_pere && forms[i].info_pere.info_pere_2.fokontany_pere && forms[i].info_pere.profession_pere && forms[i].info_pere.mother_father_same_address)
                         queryCivilRegisterInsertFather += `(${forms[i].info_pere.niu_pere},'${forms[i].info_pere.prenom_pere}','${forms[i].info_pere.nom_pere}','${formatDate(forms[i].info_pere.date_naissance_pere)}','${forms[i].info_pere.info_pere_2.region_pere}','${forms[i].info_pere.info_pere_2.district_pere}','${forms[i].info_pere.info_pere_2.commune_pere}','${forms[i].info_pere.info_pere_2.fokontany_pere}','${forms[i].info_pere.profession_pere}','${forms[i].info_pere.mother_father_same_address}'),`;
                     }
@@ -833,16 +696,6 @@ module.exports = {
                     // // ######## FOR MOTHER ######## \\
                     var queryCivilRegisterInsertMother = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession) VALUES";
                     for (let i = 0; i < forms.length; i++) {
-                      //   if (isNullOrEmpty(result[i][20])) { result[i][20] = null; } // info_mere-niu_mere
-                      //   if (isNullOrEmpty(result[i][22])) { result[i][22] = null; } //info_mere-prenom_mere
-                      //   if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_mere-nom_mere
-                      //   if (isNullOrEmpty(result[i][23])) { result[i][23] = null; } result[i][23] = formatDate(result[i][23]); //info_mere-date_naissance_mere
-                      //   if (isNullOrEmpty(result[i][31])) { result[i][31] = null; } //info_mere-nationalite_mere
-                      //   if (isNullOrEmpty(result[i][25])) { result[i][25] = null; } //info_mere-region_mere
-                      //   if (isNullOrEmpty(result[i][26])) { result[i][26] = null; } //info_mere-district_mere
-                      //   if (isNullOrEmpty(result[i][27])) { result[i][27] = null; } //info_mere-commune_mere
-                      //   if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_mere-fokontany_mere
-                      //   if (isNullOrEmpty(result[i][29])) { result[i][29] = null; } //info_mere-profession_mere
                       if (forms[i].info_mere.niu_mere)
                         queryCivilRegisterInsertMother += `('${forms[i].info_mere.niu_mere}', '${forms[i].info_mere.prenom_mere}', '${forms[i].info_mere.nom_mere}', '${formatDate(forms[i].info_mere.date_naissance_mere)}', '${forms[i].info_mere.nationalite_mere}', '${forms[i].info_mere.region_mere}', '${forms[i].info_mere.district_mere}', '${forms[i].info_mere.commune_mere}',  '${forms[i].info_mere.fokontany_mere}', '${forms[i].info_mere.profession_mere}'),`;
                     }
@@ -855,12 +708,6 @@ module.exports = {
                     // // ######## FOR DECLARANT ######## \\
                     var queryCivilRegisterInsertDeclarant = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, region_of_birth) VALUES";
                     for (let i = 0; i < forms.length; i++) {
-                      //   if (isNullOrEmpty(result[i][44])) { result[i][44] = null; } // info_declarant-info_declarant_2-niu_declarant
-                      //   if (isNullOrEmpty(result[i][46])) { result[i][46] = null; } // info_declarant-info_declarant_2-prenom_declarant
-                      //   if (isNullOrEmpty(result[i][45])) { result[i][45] = null; } // info_declarant-info_declarant_2-nom_declarant
-                      //   if (isNullOrEmpty(result[i][47])) { result[i][47] = null; } result[i][47] = formatDate(result[i][47]); //info_declarant-info_declarant_2-date_naissance_declarant
-                      //   if (isNullOrEmpty(result[i][48])) { result[i][48] = null; } // info_declarant-info_declarant_2-address_declarant
-
                       if (forms[i].info_declarant.info_declarant_2.date_naissance_declarant != null && forms[i].info_declarant.info_declarant_2.niu_declarant)
                         queryCivilRegisterInsertDeclarant += `('${forms[i].info_declarant.info_declarant_2.niu_declarant}', '${forms[i].info_declarant.info_declarant_2.prenom_declarant}', '${forms[i].info_declarant.info_declarant_2.nom_declarant}', '${formatDate(forms[i].info_declarant.info_declarant_2.date_naissance_declarant)}', '${forms[i].info_declarant.info_declarant_2.address_declarant}'),`;
                     }
@@ -873,26 +720,22 @@ module.exports = {
                     var fathersInfo = resultCivilRegisterInsertFather.rows;
                     var mothersInfo = resultCivilRegisterInsertMother.rows;
                     var delarantsInfo = resultCivilRegisterInsertDeclarant.rows;
-                    var resultCopy = forms;//result.splice(1, forms.length - 1);
+                    var resultCopy = forms;
                     var queryRegistrationFormInsert = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, in_charge_sign, lattitude, longitude ) VALUES";
                     for (let i = 0; i < childsInfo.length; i++) {
                       const childInfo = childsInfo[i];
                       let indexChildFileData = resultCopy.findIndex(element => element.gr_info.numero_declaration == childInfo.uin);
                       if (indexChildFileData > -1 && forms[i].location != null) {
-                        // var indexFather = fathersInfo.findIndex(element => element.info_pere.niu_pere == forms[i].info_pere.niu_pere);
-                        // var indexMother = mothersInfo.findIndex(element => element.info_mere.niu_mere == forms[i].info_mere.niu_mere);
-                        // var indexDeclarant = delarantsInfo.findIndex(element => element.info_declarant.info_declarant_2.niu_declarant == forms[i].info_declarant.info_declarant_2.niu_declarant);
                         var fatherId = fathersInfo[i].id;
                         var motherId = mothersInfo[i].id;
                         var declarantId = delarantsInfo[i] ? delarantsInfo[i].id : null;
                         var lattitude = forms[i].location.coordinates[0];
                         var longitude = forms[i].location.coordinates[1];
 
-                        //43 = info_declarant-lien_declarant
-                        //7 = gr_info-date_declaration
-                        //8 = gr_info-date_transcription
-
-                        //53 = lieu_signature
+                        //index 43 = info_declarant-lien_declarant
+                        //index 7 = gr_info-date_declaration
+                        //index 8 = gr_info-date_transcription
+                        //index 53 = lieu_signature
                         queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${forms[i].info_declarant.lien_declarant}','${formatDate(forms[i].gr_info.date_declaration)}','${formatDate(forms[i].gr_info.date_transcription)}','${forms[i].lieu_signature}','${lattitude}','${longitude}'),`
 
 
@@ -921,7 +764,6 @@ module.exports = {
                               .on('finish', () => resolve())
                               .on('error', e => reject(e));
                           });
-                          // return res.json(null, forms);
                         })
                         .catch(error => {
                           reject(isNullOrEmpty(error.message) ? error : error.message, null);
@@ -947,7 +789,6 @@ module.exports = {
                               .on('finish', () => resolve())
                               .on('error', e => reject(e));
                           });
-                          // return res.json(null, forms);
                         })
                         .catch(error => {
                           reject(isNullOrEmpty(error.message) ? error : error.message, null);
@@ -990,11 +831,7 @@ module.exports = {
   },
   getChildCount: async (sDate, regionCode, districtCode, communeCode, fokontanyCode, callBack) => {
     try {
-      // VALID_DATE_FORMAT yyyy-mm-dd //
-
       var response = {};
-      var year = sDate.split("-")[0];
-      var month = sDate.split("-")[1];
 
       var whereClause = "where 1=1";
       if (!isNullOrEmpty(regionCode)) {
@@ -1014,13 +851,11 @@ module.exports = {
       }
       //#region OverAll
       var queryOverAllCount = `SELECT count(child_cr_id) FROM registration_form LEFT JOIN civil_register as cr on cr.id = registration_form.child_cr_id  ${whereClause} `;
-
       var resultOverAllCount = await runSql(pool, queryOverAllCount, []);
       response.over_all_count = resultOverAllCount.rows[0].count;
       //#endregion
 
       //#region LastMonth
-      // var monthDates = getMonthStartEnd(sDate);
       var monthDates = getLastDates(sDate, 30);
       var queryMonthDataQuery = `SELECT count(child_cr_id) FROM registration_form where dec_date >= '${monthDates.start}' and dec_date <= '${monthDates.end}'`;
       var resultMonthDataQuery = await runSql(pool, queryMonthDataQuery, []);
@@ -1028,7 +863,6 @@ module.exports = {
       //#region LastMonth
 
       //#region LastYear
-      // var yearDates = getLastYear(sDate);
       var yearDates = getLastDates(sDate, 365);
       var queryYearData = `SELECT count(child_cr_id) FROM registration_form where dec_date >= '${yearDates.start}' and dec_date <= '${yearDates.end}'`;
       var resultYearData = await runSql(pool, queryYearData, []);
@@ -1036,7 +870,6 @@ module.exports = {
       //#region LastYear
 
       //#region LastSevenDays
-      // var lastSevenDates = getLastSevenDays(sDate);
       var lastSevenDates = getLastDates(sDate, 7);
       var queryLastSevenData = `SELECT count(child_cr_id) FROM registration_form where dec_date >= '${lastSevenDates.start}' and dec_date <= '${lastSevenDates.end}'`;
       var resultLastSevenData = await runSql(pool, queryLastSevenData, []);
@@ -1153,8 +986,6 @@ module.exports = {
   },
   getSevenDayGraph: async (sDate, sEndDate, candle, region, district, commune, fokontany, callBack) => {
     try {
-      // VALID_DATE_FORMAT yyyy-mm-dd //
-      // var lastSevenDates = getLastSevenDays(sDate);
       var queryLastSevenData = `SELECT rf.*, cr.gender FROM registration_form rf INNER JOIN civil_register cr ON rf.mother_cr_id = cr.id
       WHERE DATE(rf.dec_date) >= '${sDate}' AND DATE(rf.dec_date) <= '${sEndDate}'`;
       if (!isNullOrEmpty(region)) {
@@ -1175,11 +1006,9 @@ module.exports = {
         return { ...d, dec_date: stringToDate(d.dec_date) };
       });
       data = data.sort(function (a, b) { return moment(a.dec_date) - moment(b.dec_date) });
-      // var minuteDifference = parseInt((getMinuteDiff(sDate, sEndDate)) / candle);
 
       var endDate = stringToDate(sEndDate);
       var conditionStartDate = stringToDate(sDate);
-      // var conditionEndDate = addMinutesToDate(stringToDate(sDate), minuteDifference);
       var conditionEndDate = moment(stringToDate(sDate)).add({ days: 1 }).format("YYYY-MM-DD");
       if (candle == 7)
         conditionEndDate = moment(stringToDate(sDate)).add({ days: 1 }).format("YYYY-MM-DD");
@@ -1188,7 +1017,6 @@ module.exports = {
       var response = [];
       var counter = 1;
       while (conditionEndDate <= endDate) {
-        // var candleData = data.filter(item => item.dec_date >= conditionStartDate && item.dec_date < conditionEndDate);
         var candleData = data.filter(item => {
           if (item.dec_date >= conditionStartDate && item.dec_date < conditionEndDate)
             return item
@@ -1203,7 +1031,6 @@ module.exports = {
           month: moment(centerDate).format("MMM"),
         });
         conditionStartDate = conditionEndDate;
-        // conditionEndDate = addMinutesToDate(conditionEndDate, minuteDifference);
         if (candle == 7)
           conditionEndDate = moment(conditionStartDate).add({ days: 1 }).format("YYYY-MM-DD");
         else if (candle == 12)
@@ -1325,7 +1152,6 @@ module.exports = {
 
       let filename = filePath.split("/");
       try {
-        // Execute the query and handle the result
         await runSql(pool, uinInsertQuery, []);
         const insertQuery = 'INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)';
         await runSql(pool, insertQuery, [
@@ -1344,33 +1170,27 @@ module.exports = {
       return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
     }
   },
-  getAllUin: async (niuStatus, commune, page, limit, uin, callBack) => {
+  getAllUins: async (niuStatus, commune, page, limit, uin, callBack) => {
     try {
       const offset = (page - 1) * limit;
-      let getQuery = `SELECT uin.* AS commune_name FROM uin`;
-      //Left join fokontany ON uin.code_commune = fokontany.code_commune`;
-      let countQuery = "SELECT COUNT(*) AS total_count FROM uin";
+      let getQuery = `SELECT uin.* AS commune_name FROM uin WHERE 1=1`;
+      let countQuery = "SELECT COUNT(*) AS total_count FROM uin WHERE 1=1";
 
-      // if (niuStatus || commune || uin) {
-        getQuery += " WHERE 1=1";
-        countQuery += " WHERE 1=1";
+      if (!isNullOrEmpty(uin)) {
+        getQuery += ` AND uin = ${uin}`
+        countQuery += ` AND uin = ${uin}`
 
-        if (!isNullOrEmpty(uin)) {
-          getQuery += ` AND uin = ${uin}`
-          countQuery += ` AND uin = ${uin}`
+      }
 
-        }
+      if (!isNullOrEmpty(niuStatus)) {
+        getQuery += ` AND niu_status = '${niuStatus}'`;
+        countQuery += ` AND niu_status = '${niuStatus}'`;
+      }
 
-        if (!isNullOrEmpty(niuStatus)) {
-          getQuery += ` AND niu_status = '${niuStatus}'`;
-          countQuery += ` AND niu_status = '${niuStatus}'`;
-        }
-
-        if (!isNullOrEmpty(commune)) {
-          getQuery += ` AND uin.code_commune = '${commune}'`;
-          countQuery += ` AND uin.code_commune = '${commune}'`;
-        }
-      // }
+      if (!isNullOrEmpty(commune)) {
+        getQuery += ` AND uin.code_commune = '${commune}'`;
+        countQuery += ` AND uin.code_commune = '${commune}'`;
+      }
 
       getQuery += ` LIMIT ${limit} OFFSET ${offset}`;
 
@@ -1380,8 +1200,7 @@ module.exports = {
         runSql(pool, countQuery, [])
       ]);
       var communeIds = getResult.rows.map(x => x.code_commune);
-      if(communeIds.length > 0)
-      {
+      if (communeIds.length > 0) {
         var communeLabelQuery = `select DISTINCT ON (code_commune) code_commune, libelle_commune from fokontany where code_commune in (${communeIds})`;
         var communeLabel = await runSql(pool, communeLabelQuery, []);
         for (let i = 0; i < getResult.rows.length; i++) {

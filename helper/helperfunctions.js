@@ -1,18 +1,9 @@
-const { pool } = require("../config/database");
-const cors = require("cors");
-const admin = require('firebase-admin');
-const { notificationmessage, ordered } = require('./constants/NotificationMessage');
-const nodemailer = require('nodemailer');
 const xlsx = require('xlsx');
 const csv = require('csv-parser');
 const fs = require('fs');
 const moment = require("moment/moment");
 
 module.exports = {
-  generateCode: function () {
-    var fullNumber = Math.floor(Math.random() * 9999);
-    return "0000";
-  },
 
   timeDifference: function diff_minutes(dt2, dt1) {
     var diff = (dt2.getTime() - dt1.getTime()) / 1000;
@@ -23,6 +14,7 @@ module.exports = {
   isNullOrEmpty: function (val) {
     return (val === undefined || val == null || val.length <= 0 || val == "") ? true : false;
   },
+
   getMinutesDifference: function (date1, date2) {
     if (typeof date1 === 'string') {
       date1 = this.parseDate(date1);
@@ -219,13 +211,11 @@ function convertToD2(sN) {
 function getMinuteDiff(dateString1, dateString2) {
   let date1 = moment.utc(dateString1);
   let date2 = moment.utc(dateString2);
-  // const diffInMs = date2.getTime() - date1.getTime();
   return date2.diff(date1, 'minutes');
 }
 
 function addMinutesToDate(date, minutesToAdd) {
   return moment.utc(date).add({ minutes: minutesToAdd }).format("YYYY-MM-DD")
-  // return new Date(date.setMinutes(date.getMinutes() + minutesToAdd));
 }
 
 function stringToDate(dateString) {
@@ -237,17 +227,6 @@ function formatDate(inputDate) {
   try {
 
     let t = moment.utc(inputDate).format("YYYY-MM-DD");
-    // const date = new Date(inputDate);
-    // const year = date.getFullYear().toString();
-    // let month = (date.getMonth() + 1).toString();
-    // if (month.length < 2) {
-    //   month = '0' + month;
-    // }
-    // let day = date.getDate().toString();
-    // if (day.length < 2) {
-    //   day = '0' + day;
-    // }
-    // return year + '-' + month + '-' + day;
     return t;
   } catch (error) {
     console.log(error);
@@ -257,14 +236,9 @@ function formatDate(inputDate) {
 function getLastDates(dateString, days) {
   let [year, month, day] = dateString.split("-");
 
-  let newDateObject = moment(dateString).subtract({ hours: new Date().getTimezoneOffset() / 60 })
-  // newDateObject = addMinutesToDate(newDateObject, new Date().getTimezoneOffset());
-  // var currentZoneDifference = process.env.TIME_ZONE * 60;
-  // newDateObject = addMinutesToDate(newDateObject, currentZoneDifference);
+  let newDateObject = moment(dateString).subtract({ hours: new Date().getTimezoneOffset() / 60 });
   newDateObject = moment(dateString).subtract({ days: days });
 
-  // newDateObject = newDateObject.setDate(newDateObject.getDate() - days);
-  //  newDateObject = new Date(newDateObject);
   const start = `${newDateObject.year()}-${convertToD2(newDateObject.month() + 1)}-${convertToD2(newDateObject.date())} 00:00:00`;
   const end = `${year}-${month}-${day} 23:59:59`;
   return { start, end };

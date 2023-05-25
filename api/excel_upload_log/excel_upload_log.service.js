@@ -56,7 +56,7 @@ module.exports = {
               result[i][17] = 0;
             } else {
               result[i][17] = 1;
-            } //info_enfant-name_health_center queery to ber change to save yes or no
+            } //info_enfant-name_health_center query to ber change to save yes or no
             if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_enfant_name_toooooooooooo beeeeeeeeeeeeeee filledddddddddddddddddddddddddd
             if (isNullOrEmpty(result[i][17])) { result[i][17] = null; } //info_enfant-name_health_center
             if (isNullOrEmpty(result[i][18])) { result[i][18] = null; } //info_enfant-name_domicile
@@ -87,8 +87,6 @@ module.exports = {
   fileUpload: async (filePath, data, callBack) => {
     try {
       const currentDate = new Date();
-      // const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
-      // let path = "/" + Paths.Paths.FILE + "/" + filePath;
       var insertQuery = `INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)`;
       console.log(insertQuery)
       var insertResult = await runSql(pool, insertQuery, [
@@ -96,7 +94,6 @@ module.exports = {
         data.number_records,
         data.input_type,
         "/" + Paths.Paths.FILE + "/" + filePath,
-        // formattedTime,
         currentDate.toISOString().substring(0, 19).replace('T', ' '),
         data.module_type
       ]);
@@ -110,34 +107,33 @@ module.exports = {
       const offset = (page - 1) * limit;
       let countQuery = 'SELECT COUNT(*) FROM excel_upload_log WHERE 1=1';
       let selectQuery = 'SELECT * FROM excel_upload_log WHERE 1=1';
-  
+
       if (moduleType) {
         countQuery += ` AND module_type LIKE '%${moduleType}%'`;
         selectQuery += ` AND module_type LIKE '%${moduleType}%'`;
       }
-  
+
       if (file) {
-        // Extract the file name from the provided file path
         const fileName = file.substring(file.lastIndexOf('/') + 1);
         countQuery += ` AND file LIKE '%${fileName}%'`;
         selectQuery += ` AND file LIKE '%${fileName}%'`;
       }
-      
+
       const countResult = await runSql(pool, countQuery);
       const selectResult = await runSql(pool, selectQuery + ' ORDER BY id DESC LIMIT $1 OFFSET $2', [limit, offset]);
-  
+
       const data = {
         total_count: countResult.rows[0].count,
         page_number: page,
         page_size: limit,
         data: selectResult.rows,
       };
-  
+
       return callBack(null, data);
     } catch (error) {
       return callBack(error);
     }
   }
-  
+
 
 };
