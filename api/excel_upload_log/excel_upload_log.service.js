@@ -8,6 +8,11 @@ const { isNullOrEmpty } = require("../../helper/helperfunctions");
 
 module.exports = {
 
+  /* `saveFileDetail` is a function that takes in a file path and a callback function as parameters. It
+  reads the file and extracts data from it based on the file extension (xlsx, xls, or csv). It then
+  processes the data and inserts it into a database table called `upload_excel_log`. The function
+  returns a Promise that resolves with a message indicating that the data has been entered into the
+  database. If there is an error, the Promise is rejected with an error message. */
   saveFileDetail: (filePath, callBack) => {
     try {
       let extension = filePath.split('.').pop();
@@ -84,6 +89,11 @@ module.exports = {
       return callBack(isNullOrEmpty(error.message) ? error : error.message, null);
     }
   },
+  /* `fileUpload` is a function that takes in a file path, data, and a callback function as parameters.
+  It inserts data into a database table called `excel_upload_log` with the details of the uploaded
+  file, including the date and time of upload, the number of records, the input type, the file path,
+  and the module type. It then returns a Promise that resolves with the inserted data if successful,
+  or rejects with an error message if there is an error. */
   fileUpload: async (filePath, data, callBack) => {
     try {
       const currentDate = new Date();
@@ -102,6 +112,8 @@ module.exports = {
       return callBack(isNullOrEmpty(error.message) ? error : error.message, null);
     }
   },
+  /* `getAllLogs` is a function that retrieves data from the `excel_upload_log` table in the database.
+  It takes in four parameters: `page`, `limit`, `moduleType`, and `file`. */
   getAllLogs: async (page, limit, moduleType, file, callBack) => {
     try {
       const offset = (page - 1) * limit;
@@ -134,6 +146,5 @@ module.exports = {
       return callBack(error);
     }
   }
-
 
 };

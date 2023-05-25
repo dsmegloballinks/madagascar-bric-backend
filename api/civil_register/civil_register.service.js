@@ -14,6 +14,8 @@ const moment = require("moment/moment");
 const axios = require('axios');
 
 module.exports = {
+  /* the below code is defining an asynchronous function called "signUp" that takes in two parameters:
+  "data" and "callBack". */
   signUp: async (data, callBack) => {
     try {
       var checkEmailQuery = 'SELECT * FROM access_control WHERE email = $1';
@@ -37,6 +39,8 @@ module.exports = {
       return callBack(error);
     }
   },
+  /* the below code is defining an asynchronous function called `updateUser` that takes in two
+  parameters: `data` and `userId`. */
   updateUser: async (data, userId) => {
     try {
       const checkUserQuery = `SELECT * FROM access_control WHERE user_id = $1`;
@@ -57,6 +61,8 @@ module.exports = {
       throw new Error(error.message);
     }
   },
+  /* the below code is defining an asynchronous function called `deleteUser` that takes two parameters:
+  `user_id` and `callBack`. */
   deleteUser: async (user_id, callBack) => {
     try {
       const deleteQuery = "DELETE FROM access_control WHERE user_id = $1";
@@ -66,6 +72,11 @@ module.exports = {
       return callBack(error);
     }
   },
+  /* the below code is a JavaScript function that retrieves a list of users from a database table named
+  "access_control". The function takes in parameters such as page number, limit, and email to filter
+  the results. It uses SQL queries to retrieve the total count of users and the list of users based
+  on the provided parameters. The function then returns the data in a JSON format with the total
+  count, page number, page size, and the list of users. */
   getAllUsers: async (page, limit, email, callBack) => {
     try {
       const offset = (page - 1) * limit;
@@ -91,6 +102,8 @@ module.exports = {
       return callBack(error);
     }
   },
+  /* the below code is defining an asynchronous function called `updateUserStatus` that takes in two
+  parameters: `data` and `userId`. */
   updateUserStatus: async (data, userId) => {
     try {
       const checkUserQuery = `SELECT * FROM access_control WHERE user_id = $1`;
@@ -110,6 +123,8 @@ module.exports = {
       throw new Error(error.message);
     }
   },
+  /* the below code is defining an asynchronous function called `login` that takes in three parameters:
+  `user_name`, `password`, and `callBack`. */
   login: async (user_name, password, callBack) => {
     try {
       var loginQuery = 'SELECT * FROM access_control WHERE user_name = $1 AND  password = $2 ';
@@ -123,6 +138,11 @@ module.exports = {
       return callBack(error, null);
     }
   },
+  /* the below code is a function that inserts data into a database table named "civil_register". The
+  function takes in two parameters: "data" which contains the values to be inserted into the table,
+  and "callBack" which is a callback function that is executed after the query is executed. The
+  function uses a SQL query to insert the data into the table and returns an error if there is any,
+  otherwise it returns the results of the query. */
   create: (data, callBack) => {
     pool.query(
       `INSERT INTO civil_register(given_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, cr_profession, is_other_nationality, nationality_name, is_other_residence, date_created, status, uin) 
@@ -154,6 +174,13 @@ module.exports = {
       }
     );
   },
+  /* the below code is a JavaScript function that retrieves data from a database table called
+  "civil_register" based on various search criteria such as region, name, module type, district,
+  commune, fokontany, date range, and error ID. The function uses SQL queries to retrieve the data
+  and joins it with data from other tables such as "registration_form", "civil_register", and
+  "fokontany". The retrieved data is then processed and returned as an array of objects containing
+  information about the civil register, mother, father, declarant, and fokontany. The function also
+  returns */
   getAll: async (sDate, sEndDate, page, limit, region, name, moduleType, district, commune, fokontany, niuStatus, error_id, callback) => {
     try {
       const offset = (page - 1) * limit;
@@ -274,6 +301,12 @@ module.exports = {
       return callback(error.message, null);
     }
   },
+  /* the below code is an asynchronous function in JavaScript that updates the UIN (Unique
+  Identification Number) of a civil register entry in a database. It first checks if the civil
+  register entry exists and if the commune of birth is valid for the given UIN. It then checks if
+  the new UIN is a duplicate or a valid UIN. If the new UIN is valid, it updates the UIN in the
+  database and returns the updated entry and error_id = 0. If the new UIN is a duplicate or invalid,
+  it returns error_id indicating the type of error. */
   update: async (data, cr_id, callBack) => {
     try {
 
@@ -324,6 +357,10 @@ module.exports = {
       throw new Error(error.message);
     }
   },
+  /* the below code is a method called `deleteById` that takes in an `id` and a `callBack` function as
+  parameters. It executes a SQL query to delete a row from a table called `civil_register` where the
+  `id` matches the given `id`. If there is an error, it returns the error through the `callBack`
+  function. Otherwise, it returns the results of the query through the `callBack` function. */
   deleteById: (id, callBack) => {
     pool.query(
       `DELETE FROM civil_register WHERE id = ${id}`,
@@ -336,6 +373,12 @@ module.exports = {
       }
     );
   },
+  /* the below code is a JavaScript function that fetches data from a CSV and saves it
+  to a database. It reads csv file and ten convert into json to make API requests and PostgreSQL as the database. The
+  function first logs in to the ODK API using a username and password, then retrieves data from a
+  specific form submission endpoint. It then processes the retrieved data and inserts it into the
+  database tables. Finally, it logs the number of records processed and the date and time of the upload
+  in the excel_upload_log table. */
   saveFileToDatabase: (filePath, callBack) => {
     try {
       let extension = filePath.split('.').pop();
@@ -609,6 +652,13 @@ module.exports = {
       return callBack(isNullOrEmpty(error.message) ? error : error.message, null);
     }
   },
+  /* the below code is a JavaScript function that fetches data from an external API (ODK) and saves it
+  to a database. It uses Axios library to make API requests and PostgreSQL as the database. The
+  function first logs in to the ODK API using a username and password, then retrieves data from a
+  specific form submission endpoint. It then processes the retrieved data and inserts it into the
+  database tables. The function also downloads and saves image attachments associated with the form
+  submissions. Finally, it logs the number of records processed and the date and time of the upload
+  in the excel_upload_log table. */
   fetchSaveToDatabase: (callBack) => {
     try {
       return new Promise(async (resolve, reject) => {
@@ -829,6 +879,10 @@ module.exports = {
       return callBack(isNullOrEmpty(error.message) ? error : error.message, null);
     }
   },
+  /* the below code is a JavaScript function that takes in several parameters and returns the count of
+  child registrations based on different time periods (overall, last month, last year, last seven
+  days) and different location filters (region, district, commune, fokontany). The function uses SQL
+  queries to retrieve the data from a database and returns the results in a response object. */
   getChildCount: async (sDate, regionCode, districtCode, communeCode, fokontanyCode, callBack) => {
     try {
       var response = {};
@@ -881,6 +935,12 @@ module.exports = {
       return callBack(error.message, null);
     }
   },
+  /* the below code is defining an asynchronous function called `getFokontany` that takes in two
+  parameters: `searchParams` and `callBack`. The function queries a database table called
+  `fokontany` based on the values of `libelle_region`, `libelle_district`, and `libelle_commune`
+  properties of the `searchParams` object. If any of these properties are not null, the function
+  retrieves the corresponding `code_district`, `code_commune`, or `code_fokontany` values from the
+  `fokontany` table and uses them to */
   getFokontany: async (searchParams, callBack) => {
     try {
       const { libelle_region, libelle_district, libelle_commune } = searchParams || {};
@@ -911,6 +971,13 @@ module.exports = {
       return callBack(error, null);
     }
   },
+  /* the below code defines a function called "Dashboard" that takes in several parameters (region,
+  district, commune, fokontany, callBack) and performs a database query to retrieve information
+  about the number and gender of children registered in a civil register system. The function
+  constructs a SQL query based on the provided filter conditions (region, district, commune,
+  fokontany) and executes it using a database connection pool. The results of the query are then
+  processed to calculate the percentage of children by gender and returned to the caller via the
+  provided callback function. */
   Dashboard: (region, district, commune, fokontany, callBack) => {
     const filterConditions = [];
     const filterValues = [];
@@ -984,8 +1051,16 @@ module.exports = {
       }
     });
   },
+  /* the below code is a JavaScript function that retrieves data from a database based on certain
+  conditions and returns a graph of the data for the last seven days. The function takes in
+  parameters such as start date, end date, candle, region, district, commune, fokontany, and a
+  callback function. It constructs a SQL query based on the parameters and retrieves the data from
+  the database. It then processes the data and creates a graph with the count of data for each day
+  in the last seven days. The graph includes information such as the date, quarterly, time, day, and
+  month. Finally */
   getSevenDayGraph: async (sDate, sEndDate, candle, region, district, commune, fokontany, callBack) => {
     try {
+
       var queryLastSevenData = `SELECT rf.*, cr.gender FROM registration_form rf INNER JOIN civil_register cr ON rf.mother_cr_id = cr.id
       WHERE DATE(rf.dec_date) >= '${sDate}' AND DATE(rf.dec_date) <= '${sEndDate}'`;
       if (!isNullOrEmpty(region)) {
@@ -1046,6 +1121,11 @@ module.exports = {
       return callBack(!isNullOrEmpty(error.message) ? error.message : error, null);
     }
   },
+  /* the below code is a JavaScript function called `GetLatLong` that takes in several parameters
+  including a start date, end date, region, district, commune, and fokontany. It then constructs a
+  SQL query based on the provided parameters to retrieve latitude, longitude, ID, and given name
+  data from a database table called `registration_form` and `civil_register`. The retrieved data is
+  then returned to a callback function. */
   GetLatLong: async (sDate, sEndDate, region, district, commune, fokontany, callBack) => {
     try {
       var mapQuery = `SELECT r.lattitude, r.longitude, r.id, c.given_name FROM registration_form r JOIN civil_register c ON r.child_cr_id = c.id WHERE 1=1 `;
@@ -1072,11 +1152,23 @@ module.exports = {
       return callBack(error, null);
     }
   },
+  /* the below code is defining a function called `getSevenDayGraphQuery` that takes a callback
+  function as a parameter. Inside the function, it is calling another function called `getLastDates`
+  with a specific date and a number of days to get the last seven dates. It then constructs a SQL
+  query string that selects the count of `child_cr_id` from a table called `registration_form` where
+  the `dec_date` falls within the last seven dates. Finally, it returns the constructed query string
+  to the callback function. */
   getSevenDayGraphQuery: (callBack) => {
     var lastSevenDates = getLastDates("2023-05-04", 7);
     var queryLastSevenData = `SELECT count(child_cr_id) FROM registration_form where dec_date >= '${lastSevenDates.start}' and dec_date <= '${lastSevenDates.end}'`;
     return callBack(null, queryLastSevenData);
   },
+  /* the below code is defining an asynchronous function called `getCommune` that takes a callback
+  function as a parameter. Inside the function, a SQL query is constructed to select distinct values
+  of `libelle_commune` and `code_commune` from a table called `fokontany`. The `runSql` function is
+  then called with the constructed query and an empty array of parameters. If the query is
+  successful, the callback function is called with `null` as the error parameter and the result rows
+  as the data parameter. If there is an error, the callback function is called with the */
   getCommune: async (callBack) => {
     try {
       const query = `SELECT DISTINCT libelle_commune, code_commune FROM fokontany`;
@@ -1086,6 +1178,11 @@ module.exports = {
       return callBack(error, null);
     }
   },
+  /* the below code defines a function called `createUin` that takes in two parameters: `data` and
+  `callBack`. The function reads data from a file in either XLS, XLSX, or CSV format, and inserts
+  the data into a database table called `uin`. It also logs information about the upload in a
+  separate table called `excel_upload_log`. The function returns an error message if there is an
+  issue with the file or the database insertion. */
   createUin: async (data, callBack) => {
     try {
       if (!data) {
@@ -1150,7 +1247,7 @@ module.exports = {
 
       const uinInsertQuery = `INSERT INTO uin (uin, code_commune, niu_status) VALUES ${uinInsertValues.join(',')}`;
 
-      let filename = filePath.split("/");
+      let filename = data.split("/");
       try {
         await runSql(pool, uinInsertQuery, []);
         const insertQuery = 'INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)';
@@ -1170,6 +1267,11 @@ module.exports = {
       return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
     }
   },
+  /* the below code is a JavaScript function that retrieves a list of UINs (Unique Identification
+  Numbers) from a database based on certain criteria such as NIU status, commune, page, and limit.
+  The function uses SQL queries to retrieve the data and returns the results along with the total
+  number of records found. The function also includes error handling and a callback function to
+  handle the results. */
   getAllUins: async (niuStatus, commune, page, limit, uin, callBack) => {
     try {
       const offset = (page - 1) * limit;

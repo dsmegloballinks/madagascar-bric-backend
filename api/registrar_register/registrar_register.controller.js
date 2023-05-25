@@ -15,6 +15,10 @@ var common = require("../../helper/common.js");
 
 module.exports = {
 
+  /*The create function handles the creation of a new record using the data provided in the request body.
+   It returns a JSON response indicating the success or failure of the operation. If there is an error,
+   it returns an error message along with the corresponding error code. If the creation is successful
+   and results in a new record, it returns a success message along with the created record. */
   create: (req, res) => {
     const body = req.body;
     create(body, (err, results) => {
@@ -32,6 +36,10 @@ module.exports = {
       }
     });
   },
+
+  /* The getAll function retrieves a paginated list of records based on the provided parameters.
+   It accepts the page and limit values to determine the page number and the number of records per page.
+   Additionally, it takes an email parameter to filter the records based on the specified email. */
   getAll: async (req, res) => {
     let page = 1;
     let limit = 10;
@@ -58,6 +66,9 @@ module.exports = {
       return res.json(data);
     }
   },
+
+  /* The delete_rr function is responsible for deleting a record based on the provided id.
+   It first checks if the id is provided in the request query. If not, it returns an error message indicating invalid data.*/
   delete_rr: async (req, res) => {
     const { id } = req.query;
 
@@ -84,6 +95,10 @@ module.exports = {
       return res.json(data);
     }
   },
+
+  /* The update function updates a record based on the provided id and request body data.
+   It calls the updateRegistrar function with the id and body as parameters. 
+   The function returns either an error message or a success message with the updated result. */
   update: (req, res) => {
     const { id } = req.body;
     const body = req.body;
@@ -98,6 +113,10 @@ module.exports = {
       }
     });
   },
+
+  /* The createAppointment function creates a new appointment using the data provided in the request body.
+   It calls the createAppointment function with the body as a parameter. 
+   The function returns either an error message or a success message with the created appointment result. */
   createAppointment: (req, res) => {
     const body = req.body;
     createAppointment(body, (err, results) => {
@@ -115,6 +134,10 @@ module.exports = {
       }
     });
   },
+
+  /* The getAppointmentByRegistrarId function retrieves a list of appointments based on the provided 
+  parameters (id, location, and date). It uses pagination with the specified page and limit values.
+   The function returns the result as a paginated response with success or error messages.*/
   getAppointmentByRegistrarId: (req, res) => {
     let page = 1;
     let limit = 10;
@@ -146,6 +169,10 @@ module.exports = {
       }
     });
   },
+
+  /* The updateLastAppointment function is used to update the last appointment based on the provided data. 
+  It takes the req.body object as input and attempts to update the appointment. If successful, it returns a success response
+   with a success message. If there is an error, it returns an error response with an error message. */
   updateLastAppointment: async (req, res) => {
     const data = req.body;
     try {

@@ -11,6 +11,12 @@ const Paths = require('../../helper/constants/Paths');
 
 module.exports = {
 
+  /* `convertFile` is a function that handles the request to convert a CSV file to an Excel file. It
+  checks if the request contains a file parameter, and if not, it returns a 400 status code with a
+  message indicating that the file parameter is missing. If the file parameter is present, it
+  constructs the file path and calls the `saveFileDetail` function with the file path as a
+  parameter. If the conversion is successful, it returns a 200 status code with the result. If there
+  is an error during the conversion, it returns a 500 status code with an error message. */
   convertFile: (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: 'Missing file parameter' });
@@ -26,6 +32,11 @@ module.exports = {
       });
   },
 
+  /* `uploadFile` is a function that handles the request to upload a file. It takes in the request and
+  response objects as parameters. It extracts the file and other parameters from the request body.
+  It then calls the `fileUpload` function with the file name and other parameters. If the file
+  upload fails, it returns an error message with a status code of 500. If the file upload is
+  successful, it returns a success message with the result. */
   uploadFile: async (req, res) => {
     const { file } = req;
     const { number_records, input_type, module_type } = req.body;
@@ -46,6 +57,11 @@ module.exports = {
       return res.json(data);
     });
   },
+
+  /* `getAllLogs` is a function that handles the request to retrieve logs from a database. It takes in
+  the request and response objects as parameters. It sets default values for `page`, `limit`, and
+  `moduleType`, and then checks if these values are provided in the query parameters of the request.
+  If they are, it updates the corresponding variables. */
   getAllLogs: async (req, res) => {
     let page = 1;
     let limit = 10;

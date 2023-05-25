@@ -4,6 +4,14 @@ const { isNullOrEmpty } = require("../../helper/helperfunctions");
 const moment = require("moment");
 module.exports = {
 
+  /* This is a function that creates a new entry in the `registrar_register` table and a corresponding
+  entry in the `appointment_registrar` table. It takes in `data` as an object containing the
+  necessary information for both tables, and a `callBack` function to handle the result. The
+  function first executes an `INSERT` query on the `registrar_register` table using the provided
+  data, and then uses the resulting `id` to execute another `INSERT` query on the
+  `appointment_registrar` table. Finally, it returns the newly created entries in both tables as an
+  object in the callback function. If there is an error during the execution of the queries, it
+  returns the error in the callback function. */
   create: async (data, callBack) => {
     try {
       const insertQuery = "INSERT INTO registrar_register(first_name, last_name, office_email, department_name, office_contact) VALUES ($1, $2, $3, $4, $5) RETURNING *";
@@ -33,6 +41,10 @@ module.exports = {
     }
   },
 
+  /* `getAll` is a function that retrieves a paginated list of all entries in the `registrar_register`
+  table. It takes in `page`, `limit`, and `email` as parameters, where `page` is the page number to
+  retrieve, `limit` is the number of entries to retrieve per page, and `email` is an optional
+  parameter to filter the results by the email address of the registrar. */
   getAll: async (page, limit, email, callBack) => {
     try {
       const offset = (page - 1) * limit;
@@ -60,6 +72,14 @@ module.exports = {
   },
 
 
+  /* This function is deleting a record from the `registrar_register` table and its corresponding
+  record from the `appointment_registrar` table. It takes in an `id` parameter to identify the
+  record to be deleted, and a `callBack` function to handle the result. The function first executes
+  a `DELETE` query on the `appointment_registrar` table to delete the record with the matching
+  `registrar_id`, and then executes another `DELETE` query on the `registrar_register` table to
+  delete the record with the matching `id`. Finally, it returns the deleted record from the
+  `registrar_register` table in the callback function. If there is an error during the execution of
+  the queries, it returns the error in the callback function. */
   delete_rr: async (id, callBack) => {
     try {
       const deleteQuery = "DELETE FROM appointment_registrar WHERE registrar_id = $1";
@@ -74,6 +94,13 @@ module.exports = {
     }
   },
 
+  /* `updateRegistrar` is a function that updates a record in the `registrar_register` table. It takes
+  in an `id` parameter to identify the record to be updated, a `data` parameter containing the new
+  values to be updated, and a `callBack` function to handle the result. The function first
+  constructs an `UPDATE` query using the new values provided in the `data` parameter, and then
+  executes the query using the `id` parameter to identify the record to be updated. Finally, it
+  returns the updated record in the callback function. If there is an error during the execution of
+  the query, it returns the error in the callback function. */
   updateRegistrar: async (id, data, callBack) => {
     try {
       let updateQuery = "UPDATE registrar_register SET";
@@ -115,6 +142,13 @@ module.exports = {
     }
   },
 
+  /* `createAppointment` is a function that creates a new entry in the `appointment_registrar` table.
+  It takes in `data` as an object containing the necessary information for the new entry, and a
+  `callBack` function to handle the result. The function first constructs an `INSERT` query using
+  the provided data, and then executes the query using the `pool` object. Finally, it returns the
+  newly created entry in the `appointment_registrar` table as an object in the callback function. If
+  there is an error during the execution of the query, it returns the error in the callback
+  function. */
   createAppointment: async (data, callBack) => {
     try {
       const insertQuery = "INSERT INTO appointment_registrar (location, appointment_date, appointment_time, appointed_by, registrar_id, appointment_status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
@@ -135,6 +169,12 @@ module.exports = {
     }
   },
 
+  /* `getAppointmentByRegistarId` is a function that retrieves a paginated list of appointments for a
+  given registrar ID. It takes in `page`, `limit`, `id`, `location`, `date`, and `callBack` as
+  parameters. `page` is the page number to retrieve, `limit` is the number of entries to retrieve
+  per page, `id` is the registrar ID to filter the results by, `location` is an optional parameter
+  to filter the results by the location of the appointment, and `date` is an optional parameter to
+  filter the results by the date of the appointment. */
   getAppointmentByRegistarId: async (page, limit, id, location, date, callBack) => {
     try {
       const offset = (page - 1) * limit;
@@ -162,7 +202,10 @@ module.exports = {
       return callBack(error.message, null);
     }
   },
-
+  
+  /*The updateLastAppointment function updates the last appointment record for a given registrar ID 
+  with the provided data, including fields such as location, appointment date, appointment time,
+  appointed by, and appointment status. */
   updateLastAppointment: async (data, callBack) => {
     try {
       let selectQuery = "SELECT id FROM appointment_registrar WHERE registrar_id = $1 ORDER BY id DESC LIMIT 1";
