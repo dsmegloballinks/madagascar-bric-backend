@@ -695,33 +695,6 @@ module.exports = {
 
                     var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth) VALUES";
                     for (let i = 0; i < forms.length; i++) {
-                      let error_id = 0;
-                      if (result[i][32].length == 10) {
-                        var uinQuery = "SELECT * FROM uin where uin = " + result[i][69];
-                        var uinResult = await runSql(pool, uinQuery, []);
-                        if (uinResult.rows.length > 0) {
-                          if (uinResult.rows[0].code_commune == result[i][27]) {
-                            if (uinResult.rows[0].niu_status == 0) {
-                              const currentDate = new Date();
-                              const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
-                              var updateQuery = `UPDATE uin SET allocation_date='${moment().format("YYYY-MM-DD")}', allocation_time='${moment().format("YYYY-MM-DD HH:mm:ss")}', niu_status=${1} WHERE uin = ${uinResult.rows[0].uin}`;
-                              var updateResult = await runSql(pool, updateQuery, []);
-                              error_id = 0;
-                            }
-                            else {
-                              error_id = 1;// Duplicate NIU Number
-                            }
-                          }
-                          else {
-                            error_id = 3; //Wrong NIU Location Allocation
-                          }
-                        } else {
-                          error_id = 2; //Wrong NIU Number
-                        }
-                      }
-                      else
-                        error_id = 4; //Lenght not equal 10.
-
 
                       // let error_date = formatDate(new Date());
 
