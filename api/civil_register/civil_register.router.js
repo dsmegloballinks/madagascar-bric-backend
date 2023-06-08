@@ -21,6 +21,7 @@ const {
   getCommune,
   createUinController,
   getAllUinController,
+  forgetpasswordController,
 } = require("./civil_register.controller");
 const Paths = require("../../helper/constants/Paths");
 
@@ -60,5 +61,6 @@ router.get("/get-all-users", getAllUsers);
 router.get("/fetch-file", fetchFile);
 router.post("/upload-uin-file", upload, createUinController);
 router.get("/get-uin", getAllUinController);
+router.get("/forget-password", forgetpasswordController);
 
 module.exports = router;

@@ -23,13 +23,14 @@ module.exports = {
         data.office_contact
       ]);
 
-      const appointedQuery = "INSERT INTO appointment_registrar(location, appointment_date, appointment_time, appointed_by, registrar_id) VALUES ($1, $2, $3, $4, $5) RETURNING *";
+      const appointedQuery = "INSERT INTO appointment_registrar(location, appointment_date, appointment_time, appointed_by, registrar_id, appointment_status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
       const appointedResult = await pool.query(appointedQuery, [
         data.location,
         data.appointment_date,
         data.appointment_time,
         data.appointed_by,
-        insertResult.rows[0].id
+        insertResult.rows[0].id,
+        data.appointment_status
       ]);
 
       return callBack(null, {
@@ -45,15 +46,15 @@ module.exports = {
   table. It takes in `page`, `limit`, and `email` as parameters, where `page` is the page number to
   retrieve, `limit` is the number of entries to retrieve per page, and `email` is an optional
   parameter to filter the results by the email address of the registrar. */
-  getAll: async (page, limit, email, callBack) => {
+  getAll: async (page, limit, search, callBack) => {
     try {
       const offset = (page - 1) * limit;
       let countQuery = "SELECT COUNT(*) FROM registrar_register";
       let selectQuery = "SELECT * FROM registrar_register  ";
 
       var whereClause = " WHERE 1=1 ";
-      if (!isNullOrEmpty(email)) {
-        whereClause += ` AND office_email LIKE '%${email}%'`;
+      if (!isNullOrEmpty(search)) {
+        whereClause += ` AND (office_email LIKE '%${search}%' OR department_name LIKE '%${search}%' OR office_contact LIKE '%${search}%' OR first_name LIKE '%${search}%' OR last_name LIKE '%${search}%')`;
       }
       selectQuery += whereClause + " ORDER BY user_id DESC LIMIT $1 OFFSET $2";
       countQuery += whereClause;
@@ -175,34 +176,34 @@ module.exports = {
   per page, `id` is the registrar ID to filter the results by, `location` is an optional parameter
   to filter the results by the location of the appointment, and `date` is an optional parameter to
   filter the results by the date of the appointment. */
-  getAppointmentByRegistarId: async (page, limit, id, location, date, callBack) => {
+  getAppointmentByRegistarId: async (page, limit, id, search, date, callBack) => {
     try {
       const offset = (page - 1) * limit;
-      let query = "SELECT * FROM appointment_registrar WHERE registrar_id = $1";
-      let totalCountQuery = "SELECT count(*) as total_count FROM appointment_registrar WHERE registrar_id = $1";
+      let query = "SELECT * FROM appointment_registrar ";
+      let totalCountQuery = "SELECT COUNT(*) AS total_count FROM appointment_registrar";
 
-      if (!isNullOrEmpty(location)) {
-        query += ` AND location LIKE '%${location}%'`;
-        totalCountQuery += ` AND location LIKE '%${location}%'`;
+      let whereClause = ` WHERE registrar_id = ${id}`;
+      if (!isNullOrEmpty(search)) {
+        whereClause += ` AND location LIKE '%${search}%' OR appointed_by LIKE '%${search}%' OR appointment_status LIKE '%${search}%'`;
       }
 
       if (!isNullOrEmpty(date)) {
-        query += ` AND appointment_date = '${moment(date).format("YYYY-MM-DD")}'`;
-        totalCountQuery += ` AND appointment_date = '${moment(date).format("YYYY-MM-DD")}'`;
+        whereClause += ` AND appointment_date = '${moment(date).format("YYYY-MM-DD")}'`;
       }
 
-      query += " LIMIT $2 OFFSET $3";
-      totalCountQuery += " LIMIT $2 OFFSET $3";
+      query += whereClause + ` LIMIT ${limit} OFFSET ${offset}`;
+      totalCountQuery += whereClause;
 
-      let result = await runSql(pool, query, [id, limit, offset]);
-      let totalCountResult = await runSql(pool, totalCountQuery, [id, limit, offset]);
+      let result = await runSql(pool, query, []);
+      let totalCountResult = await runSql(pool, totalCountQuery, []);
       const totalCount = totalCountResult.rows[0].total_count;
       return callBack(null, result.rows, totalCount, limit);
     } catch (error) {
       return callBack(error.message, null);
     }
   },
-  
+
+
   /*The updateLastAppointment function updates the last appointment record for a given registrar ID 
   with the provided data, including fields such as location, appointment date, appointment time,
   appointed by, and appointment status. */

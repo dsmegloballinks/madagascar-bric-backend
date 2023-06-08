@@ -43,7 +43,7 @@ module.exports = {
   getAll: async (req, res) => {
     let page = 1;
     let limit = 10;
-    const email = req.query.email;
+    const search = req.query.search;
     if (req.query.page) {
       page = req.query.page;
     }
@@ -53,7 +53,7 @@ module.exports = {
     }
 
     try {
-      getAll(page, limit, email, (error, result) => {
+      getAll(page, limit, search, (error, result) => {
         if (error) {
           const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
           return res.json(data);
@@ -151,10 +151,10 @@ module.exports = {
     }
 
     let id = req.query.id;
-    let location = req.query.location;
     let date = req.query.date;
+    let search = req.query.search
 
-    getAppointmentByRegistarId(page, limit, id, location, date, (err, result, totalCount, pageSize) => {
+    getAppointmentByRegistarId(page, limit, id, search, date, (err, result, totalCount, pageSize) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });

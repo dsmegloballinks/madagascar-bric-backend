@@ -2,6 +2,7 @@ const xlsx = require('xlsx');
 const csv = require('csv-parser');
 const fs = require('fs');
 const moment = require("moment/moment");
+const nodemailer = require("nodemailer");
 
 module.exports = {
 
@@ -16,7 +17,30 @@ module.exports = {
     diff /= 60;
     return Math.abs(Math.round(diff)) - 300;
   },
+  sendEmail: async (to, subject, text) => {
+    try {
+      let transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: `dsmegloballinks@gmail.com`,
+          pass: 'zzjhywxfvwypmeki'
+        }
+      });
 
+      let mailOptions = {
+        // from: `dsmegloballinks@gmail.com`,
+        from: `"no reply" dsmegloballinks@gmail.com`,
+        to: to,
+        subject: subject,
+        text: text
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`Email sent: ${info.messageId}`);
+    } catch (error) {
+      console.error(`Error occurred while sending email: ${error.message}`);
+    }
+  },
   /* The `isNullOrEmpty` function is checking if a given value is null, undefined, an empty string, or
   an array with length less than or equal to 0. If any of these conditions are true, the function
   returns `true`, otherwise it returns `false`. */
@@ -385,3 +409,4 @@ function getLastDates(dateString, days) {
   const end = `${year}-${month}-${day} 23:59:59`;
   return { start, end };
 }
+

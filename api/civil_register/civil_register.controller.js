@@ -20,6 +20,7 @@ const {
   getCommune,
   createUin,
   getAllUins,
+  forgetpassword,
 
 
 } = require("./civil_register.service");
@@ -28,6 +29,7 @@ const { Messages } = require("../../helper/constants/Messages");
 var common = require("../../helper/common.js");
 const Paths = require('../../helper/constants/Paths');
 const { isNullOrEmpty } = require('../../helper/helperfunctions');
+const { measureMemory } = require("vm");
 
 module.exports = {
   /* The above code is defining a function called "signUp" that takes in a request and response object
@@ -36,7 +38,7 @@ module.exports = {
   signUp: (req, res) => {
     const body = req.body;
     signUp(body, (err, results) => {
-      if (err && err.message === 'Phone number already exists') {
+      if (err && err.message === 'Phone number already exists' || err && err.message === 'Email already exists' || err && err.message === 'Username already exists') {
         const data = common.error(err.message, ErrorCode.failed);
         return res.json({ data });
       }
@@ -67,6 +69,12 @@ module.exports = {
     } catch (error) {
       if (error.message === 'User does not exist') {
         const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
+        return res.json({ data });
+      } else if (error.message === 'Email already exists') {
+        const data = common.error('Email already exists', ErrorCode.invalid_data);
+        return res.json({ data });
+      } else if (error.message === 'Username already exists') {
+        const data = common.error('Username already exists', ErrorCode.invalid_data);
         return res.json({ data });
       } else {
         const data = common.error(Messages.MSG_INVALID_DATA, ErrorCode.failed);
@@ -133,7 +141,7 @@ module.exports = {
   getAllUsers: async (req, res) => {
     let page = 1;
     let limit = 10;
-    const email = req.query.email;
+    const search = req.query.search;
     if (req.query.page) {
       page = req.query.page;
     }
@@ -142,7 +150,7 @@ module.exports = {
     }
 
     try {
-      getAllUsers(page, limit, email, (error, result) => {
+      getAllUsers(page, limit, search, (error, result) => {
         if (error) {
           const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
           return res.json(data);
@@ -559,7 +567,7 @@ module.exports = {
   getAllUinController: async (req, res) => {
     let page = 1;
     let limit = 10;
-    const uin = req.query.uin;
+    const search = req.query.search;
 
     if (req.query.page) {
       page = parseInt(req.query.page);
@@ -582,7 +590,7 @@ module.exports = {
     }
 
     try {
-      getAllUins(niuStatus, commune, page, limit, uin, (error, results, totalRecords) => {
+      getAllUins(niuStatus, commune, page, limit, search, (error, results, totalRecords) => {
         if (error) {
           const data = common.error(error, Messages.MSG_INVALID_DATA, ErrorCode.failed);
           return res.json({ data });
@@ -599,6 +607,27 @@ module.exports = {
     } catch (error) {
       const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
       return res.json({ data });
+    }
+  },
+
+
+  forgetpasswordController: async (req, res) => {
+    const { id } = req.query;
+
+    try {
+      forgetpassword(parseInt(id), (error, result) => {
+
+        if (!error) {
+          const data = common.success(result, Messages.MSG_FORGOT_PASSWORD_SUCCESS, ErrorCode.success);
+          return res.json(data);
+        } else {
+          const data = common.error(Messages.MSG_INVALID_DATA, ErrorCode.invalid_data);
+          return res.json(data);
+        }
+      });
+    } catch (error) {
+      const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+      return res.json(data);
     }
   }
 

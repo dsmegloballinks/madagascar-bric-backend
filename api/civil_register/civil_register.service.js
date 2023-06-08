@@ -2,7 +2,7 @@ const pool = require("../../config/database");
 const Paths = require("../../helper/constants/Paths");
 const fs = require("fs");
 const fastcsv = require('fast-csv');
-const { runSql } = require("../../helper/helperfunctions");
+const { runSql, sendEmail } = require("../../helper/helperfunctions");
 const { removeCommaAtEnd } = require("../../helper/helperfunctions");
 const { isNullOrEmpty } = require("../../helper/helperfunctions");
 const { stringToDate } = require("../../helper/helperfunctions");
@@ -19,11 +19,17 @@ module.exports = {
   signUp: async (data, callBack) => {
     try {
       var checkEmailQuery = 'SELECT * FROM access_control WHERE email = $1';
-      var
-        checkEmailResult = await runSql(pool, checkEmailQuery, [data.email]);
+      var checkEmailResult = await runSql(pool, checkEmailQuery, [data.email]);
       if (checkEmailResult.rows.length > 0) {
         return callBack(new Error('Email already exists'));
       }
+
+      var checkUserNameQuery = 'SELECT * FROM access_control WHERE user_name = $1';
+      var checkUserNameResult = await runSql(pool, checkUserNameQuery, [data.user_name]);
+      if (checkUserNameResult.rows.length > 0) {
+        return callBack(new Error('Username already exists'));
+      }
+
       var insertQuery = `INSERT INTO access_control (user_name, password, email, date_created, status, is_user_admin) 
             VALUES($1, $2, $3, $4, $5, $6) RETURNING *`;
       var insertResult = await runSql(pool, insertQuery, [
@@ -36,7 +42,7 @@ module.exports = {
       ]);
       return callBack(null, insertResult.rows);
     } catch (error) {
-      return callBack(error);
+      return callBack(error.message);
     }
   },
   /* the below code is defining an asynchronous function called `updateUser` that takes in two
@@ -47,6 +53,18 @@ module.exports = {
       const checkUserResult = await runSql(pool, checkUserQuery, [userId]);
       if (checkUserResult.rowCount === 0) {
         throw new Error('User does not exist');
+      }
+
+      const checkEmailQuery = `SELECT * FROM access_control WHERE email = $1`;
+      const checkEmailResult = await runSql(pool, checkEmailQuery, [data.email]);
+      if (checkEmailResult.rowCount > 0) {
+        throw new Error('Email already exists');
+      }
+
+      const checkUserNameQuery = `SELECT * FROM access_control WHERE user_name = $1`;
+      const checkUserNameResult = await runSql(pool, checkUserNameQuery, [data.user_name]);
+      if (checkUserNameResult.rowCount > 0) {
+        throw new Error('Username already exists');
       }
 
       const updateQuery = `UPDATE access_control SET email = $1, user_name = $2 WHERE user_id = $3`;
@@ -77,15 +95,15 @@ module.exports = {
   the results. It uses SQL queries to retrieve the total count of users and the list of users based
   on the provided parameters. The function then returns the data in a JSON format with the total
   count, page number, page size, and the list of users. */
-  getAllUsers: async (page, limit, email, callBack) => {
+  getAllUsers: async (page, limit, search, callBack) => {
     try {
       const offset = (page - 1) * limit;
       let countQuery = "SELECT COUNT(*) FROM access_control";
       let selectQuery = "SELECT * FROM access_control  ";
 
       var whereClause = " WHERE 1=1 ";
-      if (!isNullOrEmpty(email)) {
-        whereClause += ` AND email LIKE '%${email}%'`;
+      if (!isNullOrEmpty(search)) {
+        whereClause += ` AND (email LIKE '%${search}%' OR user_name LIKE '%${search}%')`;
       }
       selectQuery += whereClause + " ORDER BY user_id DESC LIMIT $1 OFFSET $2";
       countQuery += whereClause;
@@ -687,7 +705,7 @@ module.exports = {
                 })
                   .then(async response => {
                     forms = response.data.value;
-                    // resolve(forms)
+                    resolve(forms)
                     let resultCivilRegisterInsert;
                     let resultCivilRegisterInsertFather;
                     let resultCivilRegisterInsertMother;
@@ -1245,21 +1263,28 @@ module.exports = {
   The function uses SQL queries to retrieve the data and returns the results along with the total
   number of records found. The function also includes error handling and a callback function to
   handle the results. */
-  getAllUins: async (niuStatus, commune, page, limit, uin, callBack) => {
+  getAllUins: async (niuStatus, commune, page, limit, search, callBack) => {
     try {
       const offset = (page - 1) * limit;
-      let getQuery = `SELECT uin.* AS commune_name FROM uin WHERE 1=1`;
+      let getQuery = `SELECT uin.*, fokontany.libelle_commune AS allocated_commune
+                        FROM uin 
+                        INNER JOIN fokontany ON uin.code_commune = fokontany.code_commune
+                        WHERE 1=1`;
       let countQuery = "SELECT COUNT(*) AS total_count FROM uin WHERE 1=1";
 
-      if (!isNullOrEmpty(uin)) {
-        getQuery += ` AND uin = ${uin}`
-        countQuery += ` AND uin = ${uin}`
-
+      if (!isNullOrEmpty(search)) {
+        getQuery += ` AND (uin = ${search} OR uin.code_commune = '${search}')`
+        countQuery += ` AND (uin = ${search} OR uin.code_commune = '${search}')`
       }
 
+      // if (!isNullOrEmpty(search)) {
+      //   getQuery += ` AND fokontany.libelle_commune LIKE '%${search}%'`
+      //   countQuery += ` AND fokontany.libelle_commune LIKE '%${search}%'`
+      // }
+
       if (!isNullOrEmpty(niuStatus)) {
-        getQuery += ` AND niu_status = '${niuStatus}'`;
-        countQuery += ` AND niu_status = '${niuStatus}'`;
+        getQuery += ` AND uin.niu_status = '${niuStatus}'`;
+        countQuery += ` AND uin.niu_status = '${niuStatus}'`;
       }
 
       if (!isNullOrEmpty(commune)) {
@@ -1269,25 +1294,36 @@ module.exports = {
 
       getQuery += ` LIMIT ${limit} OFFSET ${offset}`;
 
-
       let [getResult, countResult] = await Promise.all([
         runSql(pool, getQuery, []),
         runSql(pool, countQuery, [])
       ]);
-      var communeIds = getResult.rows.map(x => x.code_commune);
-      if (communeIds.length > 0) {
-        var communeLabelQuery = `select DISTINCT ON (code_commune) code_commune, libelle_commune from fokontany where code_commune in (${communeIds})`;
-        var communeLabel = await runSql(pool, communeLabelQuery, []);
-        for (let i = 0; i < getResult.rows.length; i++) {
-          const element = getResult.rows[i];
-          element.libelle_commune = communeLabel.rows.filter(x => x.code_commune == element.code_commune)[0].libelle_commune;
-        }
-      }
       const totalRecords = countResult.rows[0].total_count;
 
       return callBack(null, getResult.rows, totalRecords);
     } catch (error) {
       return callBack(error.message, null);
     }
+  },
+  /* The above code is defining an asynchronous function called `forgetpassword` that takes in two
+  parameters: `id` and `callBack`. */
+  forgetpassword: async (id, callBack) => {
+    try {
+      let query = `SELECT password, email FROM access_control WHERE user_id = ${id}`;
+      let result = await runSql(pool, query, []);
+      if (result && result.rows.length > 0) {
+        const password = result.rows[0].password;
+        const email = result.rows[0].email;
+        const subject = "Password Recovery";
+        const text = `Your password is: ${password}`;
+        await sendEmail(email, subject, text);
+        return callBack(null, { password, email });
+      } else {
+        return callBack("User not found.", null);
+      }
+    } catch (error) {
+      return callBack(error.message, null);
+    }
   }
+
 };
