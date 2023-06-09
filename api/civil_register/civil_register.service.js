@@ -67,10 +67,11 @@ module.exports = {
         throw new Error('Username already exists');
       }
 
-      const updateQuery = `UPDATE access_control SET email = $1, user_name = $2 WHERE user_id = $3`;
+      const updateQuery = `UPDATE access_control SET email = $1, user_name = $2, status = $3 WHERE user_id = $4`;
       const body = [
         data.email,
         data.user_name,
+        data.status,
         userId
       ];
       const updateResult = await runSql(pool, updateQuery, body);
@@ -238,7 +239,7 @@ module.exports = {
           whereClause += ` AND cr.error_id > 0`;
       }
       if (!isNullOrEmpty(error_id)) {
-        whereClause += ` AND cr.error_id = '${error_id}'`;
+        whereClause += ` AND cr.error_id = ${error_id}`;
       }
       query += whereClause;
       query += ` ORDER BY cr.id DESC LIMIT ${limit} OFFSET ${offset} `;

@@ -14,6 +14,22 @@ module.exports = {
   returns the error in the callback function. */
   create: async (data, callBack) => {
     try {
+      // Check if office_contact already exists
+      const contactExistsQuery = "SELECT * FROM registrar_register WHERE office_contact = $1";
+      const contactExistsResult = await pool.query(contactExistsQuery, [data.office_contact]);
+
+      if (contactExistsResult.rows.length > 0) {
+        return callBack("Office contact already exists", null);
+      }
+
+      // Check if office_email already exists
+      const emailExistsQuery = "SELECT * FROM registrar_register WHERE office_email = $1";
+      const emailExistsResult = await pool.query(emailExistsQuery, [data.office_email]);
+
+      if (emailExistsResult.rows.length > 0) {
+        return callBack("Office email already exists", null);
+      }
+
       const insertQuery = "INSERT INTO registrar_register(first_name, last_name, office_email, department_name, office_contact) VALUES ($1, $2, $3, $4, $5) RETURNING *";
       const insertResult = await pool.query(insertQuery, [
         data.first_name,
@@ -41,6 +57,7 @@ module.exports = {
       return callBack(error, null);
     }
   },
+
 
   /* `getAll` is a function that retrieves a paginated list of all entries in the `registrar_register`
   table. It takes in `page`, `limit`, and `email` as parameters, where `page` is the page number to
@@ -106,42 +123,57 @@ module.exports = {
     try {
       let updateQuery = "UPDATE registrar_register SET";
       const values = [];
-
+  
       if (data.first_name) {
         updateQuery += " first_name = $1,";
         values.push(data.first_name);
       }
-
+  
       if (data.last_name) {
         updateQuery += " last_name = $2,";
         values.push(data.last_name);
       }
-
+  
       if (data.office_email) {
+        // Check if email already exists
+        const emailExistsQuery = "SELECT id FROM registrar_register WHERE office_email = $1 AND id != $2";
+        const emailExistsResult = await runSql(pool, emailExistsQuery, [data.office_email, id]);
+        if (emailExistsResult.rowCount > 0) {
+          return callBack('Email already exists.', null);
+        }
+  
         updateQuery += " office_email = $3,";
         values.push(data.office_email);
       }
-
+  
       if (data.department_name) {
         updateQuery += " department_name = $4,";
         values.push(data.department_name);
       }
-
+  
       if (data.office_contact) {
+        // Check if phone number already exists
+        const phoneExistsQuery = "SELECT id FROM registrar_register WHERE office_contact = $1 AND id != $2";
+        const phoneExistsResult = await runSql(pool, phoneExistsQuery, [data.office_contact, id]);
+        if (phoneExistsResult.rowCount > 0) {
+          return callBack('Phone number already exists.', null);
+        }
+  
         updateQuery += " office_contact = $5,";
         values.push(data.office_contact);
       }
-
+  
       updateQuery = updateQuery.slice(0, -1) + " WHERE id = $6";
       values.push(id);
-
+  
       const updateResult = await runSql(pool, updateQuery, values);
-
+  
       return callBack(null, updateResult.rows[0]);
     } catch (error) {
       return callBack(error.message, null);
     }
   },
+  
 
   /* `createAppointment` is a function that creates a new entry in the `appointment_registrar` table.
   It takes in `data` as an object containing the necessary information for the new entry, and a
@@ -152,6 +184,16 @@ module.exports = {
   function. */
   createAppointment: async (data, callBack) => {
     try {
+      const previousAppointmentQuery = "SELECT * FROM appointment_registrar WHERE registrar_id = $1 ORDER BY id DESC LIMIT 1";
+      const previousAppointmentResult = await pool.query(previousAppointmentQuery, [data.registrar_id]);
+  
+      if (previousAppointmentResult.rows.length > 0) {
+        const previousAppointmentId = previousAppointmentResult.rows[0].id;
+  
+        const updateQuery = "UPDATE appointment_registrar SET appointment_status = $1 WHERE id = $2";
+        await pool.query(updateQuery, ["transferred", previousAppointmentId]);
+      }
+  
       const insertQuery = "INSERT INTO appointment_registrar (location, appointment_date, appointment_time, appointed_by, registrar_id, appointment_status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
       const insertResult = await pool.query(insertQuery, [
         data.location,
@@ -161,14 +203,14 @@ module.exports = {
         data.registrar_id,
         data.appointment_status
       ]);
-
+  
       return callBack(null, {
         appointment_registrar: insertResult.rows[0]
       });
     } catch (error) {
       return callBack(error.message, null);
     }
-  },
+  },  
 
   /* `getAppointmentByRegistarId` is a function that retrieves a paginated list of appointments for a
   given registrar ID. It takes in `page`, `limit`, `id`, `location`, `date`, and `callBack` as

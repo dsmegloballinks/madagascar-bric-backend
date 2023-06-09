@@ -135,7 +135,7 @@ module.exports = {
       const selectResult = await runSql(pool, selectQuery + ' ORDER BY id DESC LIMIT $1 OFFSET $2', [limit, offset]);
 
       const data = {
-        total_count: countResult.rows[0].count,
+        total_count: countResult.rows[0].count -1,
         page_number: page,
         page_size: limit,
         data: selectResult.rows,

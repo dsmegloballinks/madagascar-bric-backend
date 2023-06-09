@@ -22,15 +22,19 @@ module.exports = {
   create: (req, res) => {
     const body = req.body;
     create(body, (err, results) => {
-      if (err) {
+      if (err === "Office contact already exists") {
+        const data = common.error(err, Messages.MSG_OFFICE_CONTACT_EXISTS, ErrorCode.failed);
+        return res.json({ data });
+      } else if (err === "Office email already exists") {
+        const data = common.error(err, Messages.MSG_OFFICE_EMAIL_EXISTS, ErrorCode.failed);
+        return res.json({ data });
+      } else if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });
-      }
-      else if (results == 0) {
-        const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist,);
+      } else if (results == 0) {
+        const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
         return res.json({ data });
-      }
-      else {
+      } else {
         const data = common.success(results, Messages.MSG_SUCCESS, ErrorCode.success);
         return res.json({ data });
       }
@@ -99,20 +103,31 @@ module.exports = {
   /* The update function updates a record based on the provided id and request body data.
    It calls the updateRegistrar function with the id and body as parameters. 
    The function returns either an error message or a success message with the updated result. */
-  update: (req, res) => {
+   update: (req, res) => {
     const { id } = req.body;
     const body = req.body;
-
+  
     updateRegistrar(id, body, (err, result) => {
       if (err) {
-        const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+        let errorCode = ErrorCode.failed;
+        let errorMessage = Messages.MSG_INVALID_DATA;
+  
+        if (err === 'Email already exists.') {
+          errorCode = ErrorCode.duplicate;
+          errorMessage = 'Email already exists.';
+        } else if (err === 'Phone number already exists.') {
+          errorCode = ErrorCode.duplicate;
+          errorMessage = 'Phone number already exists.';
+        }
+  
+        const data = common.error(errorMessage, errorCode);
         return res.json({ data });
       } else {
         const data = common.success(result, Messages.MSG_UPDATE_SUCCESS, ErrorCode.success);
         return res.json({ data });
       }
     });
-  },
+  },  
 
   /* The createAppointment function creates a new appointment using the data provided in the request body.
    It calls the createAppointment function with the body as a parameter. 

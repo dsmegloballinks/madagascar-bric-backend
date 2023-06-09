@@ -60,10 +60,10 @@ module.exports = {
   and response object as parameters. It extracts the `user_id`, `email`, and `user_name` from the
   request body. */
   updateUser: async (req, res) => {
-    const { user_id, email, user_name } = req.body;
+    const { user_id, email, user_name, status } = req.body;
 
     try {
-      const updatedUser = await updateUser({ email, user_name }, user_id);
+      const updatedUser = await updateUser({ email, user_name, status }, user_id);
       const data = common.success(updatedUser, Messages.MSG_UPDATE_SUCCESS, ErrorCode.success);
       return res.json({ data });
     } catch (error) {
