@@ -1245,7 +1245,7 @@ module.exports = {
         const insertQuery = 'INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)';
         await runSql(pool, insertQuery, [
           moment().format("YYYY-MM-DD"),
-          result.length,
+          result.length -1,
           "FILE",
           "/" + Paths.Paths.FILE + "/" + filename[filename.length - 1],
           moment().format("YYYY-MM-DD HH:mm:ss"),
