@@ -200,7 +200,7 @@ module.exports = {
   "fokontany". The retrieved data is then processed and returned as an array of objects containing
   information about the civil register, mother, father, declarant, and fokontany. The function also
   returns */
-  getAll: async (sDate, sEndDate, page, limit, region, name, moduleType, district, commune, fokontany, niuStatus, error_id, callback) => {
+  getAll: async (sDate, sEndDate, page, limit, region, name, moduleType, district, commune, fokontany, uin, niuStatus, error_id, callback) => {
     try {
       const offset = (page - 1) * limit;
       let query = `SELECT DISTINCT cr.*, cr.given_name AS first_name, rf.child_cr_id, rf.dec_date, rf.dec_relation, rf.transcription_date, rf.lattitude, rf. longitude, mother.id as mother_cr_id, father_cr_id, declarant_cr_id FROM civil_register cr JOIN registration_form rf ON cr.id = rf.child_cr_id JOIN civil_register mother ON mother.id = rf.mother_cr_id `;
@@ -226,6 +226,9 @@ module.exports = {
       }
       if (!isNullOrEmpty(fokontany)) {
         whereClause += ` AND cr.fokontany_of_birth = '${fokontany}'`;
+      }
+      if (!isNullOrEmpty(uin)) {
+        whereClause += ` AND cr.uin = '${uin}'`;
       }
       if (!isNullOrEmpty(sDate))
         whereClause += ` AND DATE(rf.dec_date) >= '${sDate}'`;
@@ -1325,6 +1328,6 @@ module.exports = {
     } catch (error) {
       return callBack(error.message, null);
     }
-  }
+  },
 
 };

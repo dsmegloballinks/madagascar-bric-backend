@@ -255,9 +255,10 @@ module.exports = {
     const district = req.query.code_district;
     const commune = req.query.code_commune;
     const fokontany = req.query.code_fokontany;
+    const uin = req.query.uin;
     const niuStatus = req.query.niuStatus;
     const error_id = req.query.error_id;
-    getAll(sDate, sEndDate, page, limit, region, name, moduleType, district, commune, fokontany, niuStatus, error_id, (err, results) => {
+    getAll(sDate, sEndDate, page, limit, region, name, moduleType, district, commune, fokontany, uin, niuStatus, error_id, (err, results) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });
