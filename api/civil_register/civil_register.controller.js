@@ -37,20 +37,14 @@ module.exports = {
   (presumably defined elsewhere) along with a callback function. */
   signUp: (req, res) => {
     const body = req.body;
-    signUp(body, (err, results) => {
-      if (err && err.message === 'Phone number already exists' || err && err.message === 'Email already exists' || err && err.message === 'Username already exists') {
-        const data = common.error(err.message, ErrorCode.failed);
+    signUp(body, (errors, results) => {
+      if (errors && errors.length > 0) {
+        const data = common.error(errors, ErrorCode.failed);
         return res.json({ data });
-      }
-      else if (err) {
-        const data = common.error(Messages.MSG_INVALID_DATA, ErrorCode.failed);
+      } else if (results.length === 0) {
+        const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
         return res.json({ data });
-      }
-      else if (results == 0) {
-        const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist,);
-        return res.json({ data });
-      }
-      else {
+      } else {
         const data = common.success(results, Messages.MSG_SUCCESS, ErrorCode.success);
         return res.json({ data });
       }
@@ -61,7 +55,7 @@ module.exports = {
   request body. */
   updateUser: async (req, res) => {
     const { user_id, email, user_name, status } = req.body;
-
+  
     try {
       const updatedUser = await updateUser({ email, user_name, status }, user_id);
       const data = common.success(updatedUser, Messages.MSG_UPDATE_SUCCESS, ErrorCode.success);
@@ -77,11 +71,12 @@ module.exports = {
         const data = common.error('Username already exists', ErrorCode.invalid_data);
         return res.json({ data });
       } else {
-        const data = common.error(Messages.MSG_INVALID_DATA, ErrorCode.failed);
+        const data = common.error(error.message, ErrorCode.failed);
         return res.json({ data });
       }
     }
   },
+  
   /* The above code is defining an asynchronous function called `deleteUser` that handles a DELETE
   request to delete a user from a database. It first extracts the `user_id` from the request query
   parameters and checks if it exists. If it doesn't exist, it returns an error response. */
@@ -171,7 +166,7 @@ module.exports = {
   with an error message. */
   login: (req, res) => {
     const body = req.body;
-    login(body.user_name, body.password, (error, results) => {
+    login(body.email, body.password, (error, results) => {
       if (error) {
         const data = common.error(Messages.MSG_INVALID_REQUEST, ErrorCode.exception);
         return res.json({ data });
@@ -242,23 +237,18 @@ module.exports = {
     let page = 1;
     let limit = 10;
     if (req.query.page) {
-      page = req.query.page
+      page = req.query.page;
     }
     if (req.query.limit) {
-      limit = req.query.limit
+      limit = req.query.limit;
     }
     const sDate = req.query.s_start_date;
     const sEndDate = req.query.s_end_date;
-    const region = req.query.code_region;
-    const name = req.query.name;
-    const moduleType = req.query.moduleType;
-    const district = req.query.code_district;
-    const commune = req.query.code_commune;
-    const fokontany = req.query.code_fokontany;
-    const uin = req.query.uin;
+    const search = req.query.search;
     const niuStatus = req.query.niuStatus;
     const error_id = req.query.error_id;
-    getAll(sDate, sEndDate, page, limit, region, name, moduleType, district, commune, fokontany, uin, niuStatus, error_id, (err, results) => {
+
+    getAll(sDate, sEndDate, page, limit, search, niuStatus, error_id, (err, results) => {
       if (err) {
         const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
         return res.json({ data });
@@ -270,8 +260,8 @@ module.exports = {
         return res.json({ data });
       }
     });
-
   },
+
   /* The above code is defining an asynchronous function called `updateController` that handles a POST
   request. It expects the request body to contain `cr_id` and `uin` properties. */
   updateController: async (req, res) => {
@@ -548,19 +538,22 @@ module.exports = {
       if (!req.file) {
         return res.status(400).json({ error_code: 1, message: 'Missing file parameter' });
       }
-
+  
       var path = require('path');
       let filePath = path.resolve(__dirname) + "/../../upload/" + Paths.Paths.CSV + "/" + req.file.filename;
       createUin(filePath, (error, result) => {
         if (error) {
-          return res.status(500).json(error);
+          if (error.message.includes('duplicate key value violates unique constraint "uin_uin_unique"')) {
+            return res.status(400).json({ error_code: 2, message: 'Duplicate file entry' });
+          }
+          return res.status(500).json({ error_code: 1, message: error.message });
         }
         return res.status(200).json(result);
       });
     } catch (error) {
       return res.status(500).json({ error_code: 1, message: error.message });
     }
-  },
+  },  
   /* The above code is a controller function in a Node.js application that handles a GET request to
   retrieve a list of UINs (Unique Identification Numbers) based on certain query parameters such as
   page, limit, niu_status, and commune. The function calls the getAllUins function with the provided

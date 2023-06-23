@@ -65,8 +65,8 @@ module.exports = {
   getAllLogs: async (req, res) => {
     let page = 1;
     let limit = 10;
-    let moduleType = '';
-    let file = req.query.file;
+    let search = '';
+
     if (req.query.page) {
       page = req.query.page;
     }
@@ -75,12 +75,12 @@ module.exports = {
       limit = req.query.limit;
     }
 
-    if (req.query.moduleType) {
-      moduleType = req.query.moduleType;
+    if (req.query.search) {
+      search = req.query.search;
     }
 
     try {
-      getAllLogs(page, limit, moduleType, file, (error, result) => {
+      getAllLogs(page, limit, search, (error, result) => {
         if (error) {
           const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
           return res.json(data);
@@ -94,5 +94,6 @@ module.exports = {
       return res.json(data);
     }
   }
+
 
 };

@@ -2,7 +2,7 @@ const pool = require("../../config/database");
 const Paths = require("../../helper/constants/Paths");
 const fs = require("fs");
 const fastcsv = require('fast-csv');
-const { runSql, sendEmail } = require("../../helper/helperfunctions");
+const { runSql, sendEmail, isNumeric } = require("../../helper/helperfunctions");
 const { removeCommaAtEnd } = require("../../helper/helperfunctions");
 const { isNullOrEmpty } = require("../../helper/helperfunctions");
 const { stringToDate } = require("../../helper/helperfunctions");
@@ -18,21 +18,32 @@ module.exports = {
   "data" and "callBack". */
   signUp: async (data, callBack) => {
     try {
-      var checkEmailQuery = 'SELECT * FROM access_control WHERE email = $1';
-      var checkEmailResult = await runSql(pool, checkEmailQuery, [data.email]);
-      if (checkEmailResult.rows.length > 0) {
-        return callBack(new Error('Email already exists'));
-      }
+      const errors = [];
 
-      var checkUserNameQuery = 'SELECT * FROM access_control WHERE user_name = $1';
-      var checkUserNameResult = await runSql(pool, checkUserNameQuery, [data.user_name]);
+      const checkUserNameQuery = 'SELECT * FROM access_control WHERE user_name = $1';
+      const checkUserNameResult = await runSql(pool, checkUserNameQuery, [data.user_name]);
       if (checkUserNameResult.rows.length > 0) {
-        return callBack(new Error('Username already exists'));
+        errors.push('Username already exists');
       }
 
-      var insertQuery = `INSERT INTO access_control (user_name, password, email, date_created, status, is_user_admin) 
-            VALUES($1, $2, $3, $4, $5, $6) RETURNING *`;
-      var insertResult = await runSql(pool, insertQuery, [
+      const checkEmailQuery = 'SELECT * FROM access_control WHERE email = $1';
+      const checkEmailResult = await runSql(pool, checkEmailQuery, [data.email]);
+      if (checkEmailResult.rows.length > 0) {
+        errors.push('Email already exists');
+      }
+
+      if (data.password.length < 8) {
+        errors.push('Password must be at least 8 characters long');
+      }
+
+      if (errors.length > 0) {
+        const errorMessage = errors.join(', '); // Concatenate error messages into a single string
+        return callBack(errorMessage, null);
+      }
+
+      const insertQuery = `INSERT INTO access_control (user_name, password, email, date_created, status, is_user_admin) 
+        VALUES($1, $2, $3, $4, $5, $6) RETURNING *`;
+      const insertResult = await runSql(pool, insertQuery, [
         data.user_name,
         data.password,
         data.email,
@@ -40,31 +51,38 @@ module.exports = {
         1,
         0
       ]);
+
       return callBack(null, insertResult.rows);
     } catch (error) {
-      return callBack(error.message);
+      return callBack(error.message, null);
     }
   },
   /* the below code is defining an asynchronous function called `updateUser` that takes in two
   parameters: `data` and `userId`. */
   updateUser: async (data, userId) => {
     try {
+      const errors = [];
+
       const checkUserQuery = `SELECT * FROM access_control WHERE user_id = $1`;
       const checkUserResult = await runSql(pool, checkUserQuery, [userId]);
       if (checkUserResult.rowCount === 0) {
-        throw new Error('User does not exist');
+        errors.push('User does not exist');
       }
 
-      const checkEmailQuery = `SELECT * FROM access_control WHERE email = $1`;
-      const checkEmailResult = await runSql(pool, checkEmailQuery, [data.email]);
-      if (checkEmailResult.rowCount > 0) {
-        throw new Error('Email already exists');
-      }
-
-      const checkUserNameQuery = `SELECT * FROM access_control WHERE user_name = $1`;
-      const checkUserNameResult = await runSql(pool, checkUserNameQuery, [data.user_name]);
+      const checkUserNameQuery = `SELECT * FROM access_control WHERE user_name = $1 AND user_id != $2`;
+      const checkUserNameResult = await runSql(pool, checkUserNameQuery, [data.user_name, userId]);
       if (checkUserNameResult.rowCount > 0) {
-        throw new Error('Username already exists');
+        errors.push('Username already exists');
+      }
+
+      const checkEmailQuery = `SELECT * FROM access_control WHERE email = $1 AND user_id != $2`;
+      const checkEmailResult = await runSql(pool, checkEmailQuery, [data.email, userId]);
+      if (checkEmailResult.rowCount > 0) {
+        errors.push('Email already exists');
+      }
+
+      if (errors.length > 0) {
+        throw new Error(errors.join(', ')); // Concatenate error messages into a single string
       }
 
       const updateQuery = `UPDATE access_control SET email = $1, user_name = $2, status = $3 WHERE user_id = $4`;
@@ -144,11 +162,11 @@ module.exports = {
   },
   /* the below code is defining an asynchronous function called `login` that takes in three parameters:
   `user_name`, `password`, and `callBack`. */
-  login: async (user_name, password, callBack) => {
+  login: async (email, password, callBack) => {
     try {
-      var loginQuery = 'SELECT * FROM access_control WHERE user_name = $1 AND  password = $2 ';
+      var loginQuery = 'SELECT * FROM access_control WHERE email = $1 AND  password = $2 ';
       let params = [
-        user_name,
+        email,
         password
       ]
       var loginResult = await runSql(pool, loginQuery, params)
@@ -200,7 +218,7 @@ module.exports = {
   "fokontany". The retrieved data is then processed and returned as an array of objects containing
   information about the civil register, mother, father, declarant, and fokontany. The function also
   returns */
-  getAll: async (sDate, sEndDate, page, limit, region, name, moduleType, district, commune, fokontany, uin, niuStatus, error_id, callback) => {
+  getAll: async (sDate, sEndDate, page, limit, search, niuStatus, error_id, callback) => {
     try {
       const offset = (page - 1) * limit;
       let query = `SELECT DISTINCT cr.*, cr.given_name AS first_name, rf.child_cr_id, rf.dec_date, rf.dec_relation, rf.transcription_date, rf.lattitude, rf. longitude, mother.id as mother_cr_id, father_cr_id, declarant_cr_id FROM civil_register cr JOIN registration_form rf ON cr.id = rf.child_cr_id JOIN civil_register mother ON mother.id = rf.mother_cr_id `;
@@ -209,27 +227,25 @@ module.exports = {
       JOIN registration_form rf ON cr.id = rf.child_cr_id 
       JOIN civil_register mother ON mother.id = rf.mother_cr_id`;
       var whereClause = " where 1=1 ";
-      if (!isNullOrEmpty(region)) {
-        whereClause += ` AND cr.region_of_birth = '${region}'`;
+
+      if (!isNullOrEmpty(search) && isNumeric(search)) {
+        whereClause += ` AND (cr.uin = ${search})`;
       }
-      if (!isNullOrEmpty(name)) {
-        whereClause += ` AND cr.given_name LIKE '%${name}%'`;
+
+      if (!isNullOrEmpty(search)) {
+        whereClause += ` AND (
+          cr.region_of_birth LIKE '%${search}%' OR
+          cr.given_name LIKE '%${search}%' OR
+          cr.district_of_birth LIKE '%${search}%' OR
+          cr.commune_of_birth LIKE '%${search}%' OR
+          cr.fokontany_of_birth LIKE '%${search}%'
+        )`;
       }
-      if (!isNullOrEmpty(moduleType)) {
-        whereClause += ` AND upload_excel_log.input_type = '${moduleType}'`;
-      }
-      if (!isNullOrEmpty(district)) {
-        whereClause += ` AND cr.district_of_birth = '${district}'`;
-      }
-      if (!isNullOrEmpty(commune)) {
-        whereClause += ` AND cr.commune_of_birth = '${commune}'`;
-      }
-      if (!isNullOrEmpty(fokontany)) {
-        whereClause += ` AND cr.fokontany_of_birth = '${fokontany}'`;
-      }
-      if (!isNullOrEmpty(uin)) {
-        whereClause += ` AND cr.uin = '${uin}'`;
-      }
+
+      // if (!isNullOrEmpty(search)) {
+      //   whereClause += ` AND upload_excel_log.input_type ILIKE '%${search}%' OR`
+      // }
+
       if (!isNullOrEmpty(sDate))
         whereClause += ` AND DATE(rf.dec_date) >= '${sDate}'`;
       if (!isNullOrEmpty(sEndDate))
@@ -1248,13 +1264,13 @@ module.exports = {
         const insertQuery = 'INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)';
         await runSql(pool, insertQuery, [
           moment().format("YYYY-MM-DD"),
-          result.length -1,
+          result.length - 1,
           "FILE",
           "/" + Paths.Paths.FILE + "/" + filename[filename.length - 1],
           moment().format("YYYY-MM-DD HH:mm:ss"),
           "FILE"
         ]);
-        return callBack(null, { error_code: 0, message: 'Data inserted successfully' });
+        return callBack(null, { error_code: 0, message: result.length - 1 + ' records inserted successfully' });
       } catch (error) {
         return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
       }
@@ -1271,20 +1287,18 @@ module.exports = {
     try {
       const offset = (page - 1) * limit;
       let getQuery = `SELECT uin.*, fokontany.libelle_commune AS allocated_commune
-                        FROM uin 
-                        INNER JOIN fokontany ON uin.code_commune = fokontany.code_commune
-                        WHERE 1=1`;
-      let countQuery = "SELECT COUNT(*) AS total_count FROM uin WHERE 1=1";
-
-      if (!isNullOrEmpty(search)) {
-        getQuery += ` AND (uin = ${search} OR uin.code_commune = '${search}')`
-        countQuery += ` AND (uin = ${search} OR uin.code_commune = '${search}')`
+                      FROM uin 
+                      INNER JOIN fokontany ON uin.code_commune = fokontany.code_commune
+                      WHERE 1=1`;
+      let countQuery = "SELECT COUNT(*) AS total_count FROM uin INNER JOIN fokontany ON uin.code_commune = fokontany.code_commune WHERE 1=1";
+      if (!isNullOrEmpty(search) && isNumeric(search)) {
+        getQuery += ` AND (uin = ${search})`;
+        countQuery += ` AND (uin = ${search})`;
       }
-
-      // if (!isNullOrEmpty(search)) {
-      //   getQuery += ` AND fokontany.libelle_commune LIKE '%${search}%'`
-      //   countQuery += ` AND fokontany.libelle_commune LIKE '%${search}%'`
-      // }
+      if (!isNullOrEmpty(search)) {
+        getQuery += ` AND (fokontany.libelle_commune LIKE '%${search}%')`;
+        countQuery += ` AND (fokontany.libelle_commune LIKE '%${search}%')`;
+      }
 
       if (!isNullOrEmpty(niuStatus)) {
         getQuery += ` AND uin.niu_status = '${niuStatus}'`;
@@ -1298,10 +1312,11 @@ module.exports = {
 
       getQuery += ` LIMIT ${limit} OFFSET ${offset}`;
 
-      let [getResult, countResult] = await Promise.all([
-        runSql(pool, getQuery, []),
-        runSql(pool, countQuery, [])
-      ]);
+
+
+      var getResult = await runSql(pool, getQuery, []);
+      let countResult = await runSql(pool, countQuery, []);
+
       const totalRecords = countResult.rows[0].total_count;
 
       return callBack(null, getResult.rows, totalRecords);

@@ -123,17 +123,17 @@ module.exports = {
     try {
       let updateQuery = "UPDATE registrar_register SET";
       const values = [];
-  
+
       if (data.first_name) {
         updateQuery += " first_name = $1,";
         values.push(data.first_name);
       }
-  
+
       if (data.last_name) {
         updateQuery += " last_name = $2,";
         values.push(data.last_name);
       }
-  
+
       if (data.office_email) {
         // Check if email already exists
         const emailExistsQuery = "SELECT id FROM registrar_register WHERE office_email = $1 AND id != $2";
@@ -141,16 +141,16 @@ module.exports = {
         if (emailExistsResult.rowCount > 0) {
           return callBack('Email already exists.', null);
         }
-  
+
         updateQuery += " office_email = $3,";
         values.push(data.office_email);
       }
-  
+
       if (data.department_name) {
         updateQuery += " department_name = $4,";
         values.push(data.department_name);
       }
-  
+
       if (data.office_contact) {
         // Check if phone number already exists
         const phoneExistsQuery = "SELECT id FROM registrar_register WHERE office_contact = $1 AND id != $2";
@@ -158,22 +158,22 @@ module.exports = {
         if (phoneExistsResult.rowCount > 0) {
           return callBack('Phone number already exists.', null);
         }
-  
+
         updateQuery += " office_contact = $5,";
         values.push(data.office_contact);
       }
-  
+
       updateQuery = updateQuery.slice(0, -1) + " WHERE id = $6";
       values.push(id);
-  
+
       const updateResult = await runSql(pool, updateQuery, values);
-  
+
       return callBack(null, updateResult.rows[0]);
     } catch (error) {
       return callBack(error.message, null);
     }
   },
-  
+
 
   /* `createAppointment` is a function that creates a new entry in the `appointment_registrar` table.
   It takes in `data` as an object containing the necessary information for the new entry, and a
@@ -186,14 +186,22 @@ module.exports = {
     try {
       const previousAppointmentQuery = "SELECT * FROM appointment_registrar WHERE registrar_id = $1 ORDER BY id DESC LIMIT 1";
       const previousAppointmentResult = await pool.query(previousAppointmentQuery, [data.registrar_id]);
-  
+
       if (previousAppointmentResult.rows.length > 0) {
         const previousAppointmentId = previousAppointmentResult.rows[0].id;
-  
-        const updateQuery = "UPDATE appointment_registrar SET appointment_status = $1 WHERE id = $2";
-        await pool.query(updateQuery, ["transferred", previousAppointmentId]);
+
+        const updateQuery = "UPDATE appointment_registrar SET appointment_status = $1 WHERE id = $2 AND appointment_status = $3";
+        const updateResult = await pool.query(updateQuery, ["transferred", previousAppointmentId, "Appointed"]);
+
+        if (updateResult.rowCount > 0) {
+          // Update successful
+          console.log("Appointment status updated for previous appointment");
+        } else {
+          // Update not performed because the appointment status is not "Appointed"
+          console.log("Appointment status not updated for previous appointment");
+        }
       }
-  
+
       const insertQuery = "INSERT INTO appointment_registrar (location, appointment_date, appointment_time, appointed_by, registrar_id, appointment_status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
       const insertResult = await pool.query(insertQuery, [
         data.location,
@@ -203,15 +211,14 @@ module.exports = {
         data.registrar_id,
         data.appointment_status
       ]);
-  
+
       return callBack(null, {
         appointment_registrar: insertResult.rows[0]
       });
     } catch (error) {
       return callBack(error.message, null);
     }
-  },  
-
+  },
   /* `getAppointmentByRegistarId` is a function that retrieves a paginated list of appointments for a
   given registrar ID. It takes in `page`, `limit`, `id`, `location`, `date`, and `callBack` as
   parameters. `page` is the page number to retrieve, `limit` is the number of entries to retrieve

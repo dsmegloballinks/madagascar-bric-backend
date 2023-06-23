@@ -324,7 +324,8 @@ module.exports = {
   addMinutesToDate,
   stringToDate,
   formatDate,
-  getLastDates
+  getLastDates,
+  isNumeric
 }
 /**
  * The function converts a number to a two-digit string by adding leading zeros.
@@ -410,3 +411,9 @@ function getLastDates(dateString, days) {
   return { start, end };
 }
 
+
+function isNumeric(str) {
+  if (typeof str != "string") return false // we only process strings!  
+  return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+         !isNaN(parseInt(str)) // ...and ensure strings of whitespace fail
+}
