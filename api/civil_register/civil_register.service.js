@@ -12,6 +12,7 @@ const { convertDateToStringMoment } = require("../../helper/helperfunctions");
 const { getCenterDateMoment } = require("../../helper/helperfunctions");
 const moment = require("moment/moment");
 const axios = require('axios');
+// const {getUINFromDatabase} = require('../civil_register/civil_register.service')
 
 module.exports = {
   /* the below code is defining an asynchronous function called "signUp" that takes in two parameters:
@@ -227,6 +228,137 @@ module.exports = {
       JOIN registration_form rf ON cr.id = rf.child_cr_id 
       JOIN civil_register mother ON mother.id = rf.mother_cr_id`;
       var whereClause = " where 1=1 ";
+
+      if (!isNullOrEmpty(search) && isNumeric(search)) {
+        whereClause += ` AND (cr.uin = ${search})`;
+      }
+
+      if (!isNullOrEmpty(search)) {
+        whereClause += ` AND (
+          cr.region_of_birth LIKE '%${search}%' OR
+          cr.given_name LIKE '%${search}%' OR
+          cr.district_of_birth LIKE '%${search}%' OR
+          cr.commune_of_birth LIKE '%${search}%' OR
+          cr.fokontany_of_birth LIKE '%${search}%'
+        )`;
+      }
+
+      // if (!isNullOrEmpty(search)) {
+      //   whereClause += ` AND upload_excel_log.input_type ILIKE '%${search}%' OR`
+      // }
+
+      if (!isNullOrEmpty(sDate))
+        whereClause += ` AND DATE(rf.dec_date) >= '${sDate}'`;
+      if (!isNullOrEmpty(sEndDate))
+        whereClause += ` AND DATE(rf.dec_date) <= '${sEndDate}'`;
+
+      if (!isNullOrEmpty(niuStatus)) {
+        if (niuStatus == 0)
+          whereClause += ` AND cr.error_id = 0`;
+        else
+          whereClause += ` AND cr.error_id > 0`;
+      }
+      if (!isNullOrEmpty(error_id)) {
+        whereClause += ` AND cr.error_id = ${error_id}`;
+      }
+      query += whereClause;
+      query += ` ORDER BY cr.id DESC LIMIT ${limit} OFFSET ${offset} `;
+      /* The above code is defining a function called `getAllTrack` that takes in a request and response
+      object as parameters. It sets default values for `page` and `limit` variables, and then checks if
+      these values are provided in the query parameters of the request and updates them accordingly. It
+      also retrieves other query parameters such as `s_start_date`, `s_end_date`, `search`, `niuStatus`,
+      and `error_id`. */
+      countQuery += whereClause;
+      var results = await runSql(pool, query, []);
+      const allResult = [];
+
+      var resultCount = results.rows.length;
+      if (resultCount == 0) {
+        return callback(null, {
+          results: [],
+          total_records: 0
+        });
+      }
+      for (let x = 0; x < resultCount; x++) {
+        const motherQuery = `SELECT * FROM civil_register where id = ${results.rows[x].mother_cr_id}`;
+        var motherResults = await runSql(pool, motherQuery, []);
+
+        const fatherQuery = `SELECT * FROM civil_register where id = ${results.rows[x].father_cr_id}`;
+        var fatherResults = await runSql(pool, fatherQuery, []);
+
+        const DecQuery = `SELECT * FROM civil_register where id = ${results.rows[x].declarant_cr_id}`;
+        var DecResults = await runSql(pool, DecQuery, []);
+
+        var SQuery = `SELECT libelle_fokontany AS Fokontonay_Name, libelle_region AS Region_name, libelle_district AS District_name, libelle_commune AS Commune_name from fokontany where id = ${results.rows[x].id} `;
+        var resultQuery = await runSql(pool, SQuery, []);
+        //-- mother--//
+        var motherSQuery = `SELECT libelle_fokontany AS Fokontonay_Name, libelle_region AS Region_name, libelle_district AS District_name, libelle_commune AS Commune_name from fokontany where code_region = '${motherResults.rows[0].region_of_birth}' AND code_district = '${motherResults.rows[0].district_of_birth}' AND code_commune = '${motherResults.rows[0].commune_of_birth}' AND code_fokontany = '${motherResults.rows[0].fokontany_of_birth}'`;
+        var motherSresultQuery = await runSql(pool, motherSQuery, []);
+        motherResults.rows[0].region_name = motherSresultQuery.rows[0].region_name;
+        motherResults.rows[0].fokontonay_name = motherSresultQuery.rows[0].fokontonay_name;
+        motherResults.rows[0].district_name = motherSresultQuery.rows[0].district_name;
+        motherResults.rows[0].commune_name = motherSresultQuery.rows[0].commune_name;
+        //--child--//
+        results.rows[x].region_name = motherSresultQuery.rows[0].region_name;
+        results.rows[x].fokontonay_name = motherSresultQuery.rows[0].fokontonay_name;
+        results.rows[x].district_name = motherSresultQuery.rows[0].district_name;
+        results.rows[x].commune_name = motherSresultQuery.rows[0].commune_name;
+        var documentQuery = `SELECT * from attached_document where cr_id = ${results.rows[x].id} `;
+        var resultDocument = await runSql(pool, documentQuery, []);
+        if (resultDocument.rows.length > 1) {
+          results.rows[x].pic_certificate = resultDocument.rows[0].document_path;
+          results.rows[x].picture_register = resultDocument.rows[1].document_path;
+        }
+        else {
+          results.rows[x].pic_certificate = null;
+          results.rows[x].picture_register = null;
+        }
+        //--father--//
+
+        if (fatherResults.rows[0].region_of_birth && fatherResults.rows[0].district_of_birth && fatherResults.rows[0].commune_of_birth && fatherResults.rows[0].fokontany_of_birth) {
+          var fatherSQuery = `SELECT libelle_fokontany AS Fokontonay_Name, libelle_region AS Region_name, libelle_district AS District_name, libelle_commune AS Commune_name from fokontany where code_region = '${fatherResults.rows[0].region_of_birth}' AND code_district = '${fatherResults.rows[0].district_of_birth}' AND code_commune = '${fatherResults.rows[0].commune_of_birth}' AND code_fokontany = '${fatherResults.rows[0].fokontany_of_birth}'`;
+          var fatherSresultQuery = await runSql(pool, fatherSQuery, []);
+          fatherResults.rows[0].region_name = fatherSresultQuery.rows[0].region_name;
+          fatherResults.rows[0].fokontonay_name = fatherSresultQuery.rows[0].fokontonay_name;
+          fatherResults.rows[0].district_name = fatherSresultQuery.rows[0].district_name;
+          fatherResults.rows[0].commune_name = fatherSresultQuery.rows[0].commune_name;
+        }
+        const record = {
+          cr: results.rows[x],
+          mother: motherResults.rows[0],
+          father: fatherResults.rows[0],
+          declarant: DecResults.rows[0],
+          foko: resultQuery.rows[0],
+        };
+        allResult.push(record);
+
+      }
+      if (allResult.length === results.rows.length) {
+        countQueryResult = await runSql(pool, countQuery, []);
+        const data = {
+          results: allResult,
+          total_records: countQueryResult.rows[0].total_records,
+        };
+        return callback(null, data);
+      }
+    } catch (error) {
+      return callback(error.message, null);
+    }
+  },
+  /* The above code is a JavaScript function that retrieves data from a database table called
+  "civil_register" based on certain search criteria such as date range, page number, limit, search
+  keyword, niuStatus, and error_id. It also joins the "registration_form" and "civil_register" tables
+  to retrieve additional information about the child, mother, father, and declarant. The function
+  then formats the retrieved data and returns it as a JSON object to the calling function. */
+  getAllTracking: async (sDate, sEndDate, page, limit, search, niuStatus, error_id, callback) => {
+    try {
+      const offset = (page - 1) * limit;
+      let query = `SELECT DISTINCT cr.*, cr.given_name AS first_name, rf.child_cr_id, rf.dec_date, rf.dec_relation, rf.transcription_date, rf.lattitude, rf. longitude, mother.id as mother_cr_id, father_cr_id, declarant_cr_id FROM civil_register cr JOIN registration_form rf ON cr.id = rf.child_cr_id JOIN civil_register mother ON mother.id = rf.mother_cr_id `;
+      var countQuery = `SELECT COUNT(DISTINCT cr.id) AS total_records 
+      FROM civil_register cr
+      JOIN registration_form rf ON cr.id = rf.child_cr_id 
+      JOIN civil_register mother ON mother.id = rf.mother_cr_id`;
+      var whereClause = " where 1=1 AND cr.error_id != 0";
 
       if (!isNullOrEmpty(search) && isNumeric(search)) {
         whereClause += ` AND (cr.uin = ${search})`;
@@ -1194,15 +1326,18 @@ module.exports = {
   the data into a database table called `uin`. It also logs information about the upload in a
   separate table called `excel_upload_log`. The function returns an error message if there is an
   issue with the file or the database insertion. */
+  getUINFromDatabase,
+  /* The above code defines an asynchronous function called `createUin` that takes in two parameters:
+  `data` and `callBack`. */
   createUin: async (data, callBack) => {
     try {
       if (!data) {
         throw new Error('File path is missing');
       }
-
+  
       const extension = data.split('.').pop();
       let result = [];
-
+  
       try {
         if (extension === 'xls' || extension === 'xlsx') {
           const workbook = xlsx.readFile(data);
@@ -1213,7 +1348,7 @@ module.exports = {
           result = await new Promise((resolve, reject) => {
             const stream = fs.createReadStream(data);
             const csvData = [];
-
+  
             stream
               .pipe(fastcsv.parse())
               .on('data', (rowData) => {
@@ -1232,11 +1367,11 @@ module.exports = {
       } catch (error) {
         throw new Error('Error reading file for data gathering');
       }
-
-      const currentDate = new Date();
-      const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
+  
       const uinInsertValues = [];
-
+      let insertedCount = 0;
+      let declinedCount = 0;
+  
       try {
         for (let i = 1; i < result.length; i++) {
           if (isNullOrEmpty(result[i][0])) {
@@ -1245,34 +1380,42 @@ module.exports = {
           if (isNullOrEmpty(result[i][1])) {
             result[i][1] = null;
           }
-
-          uinInsertValues.push(`(
-            '${result[i][0]}',
-            '${result[i][1]}',
-            0
-          )`);
+  
+          const uin = result[i][0];
+  
+          const checkQuery = `SELECT COUNT(*) FROM uin WHERE uin = '${uin}'`;
+          const checkQueryResult = await runSql(pool, checkQuery, []);
+  
+          if (checkQueryResult.rows[0].count > 0) {
+            // Duplicate UIN, increment declined count
+            declinedCount++;
+          } else {
+            uinInsertValues.push(`(
+              '${uin}',
+              '${result[i][1]}',
+              0
+            )`);
+            insertedCount++;
+          }
         }
       } catch (error) {
         return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
       }
-
-      const uinInsertQuery = `INSERT INTO uin (uin, code_commune, niu_status) VALUES ${uinInsertValues.join(',')}`;
-
-      let filename = data.split("/");
-      try {
-        await runSql(pool, uinInsertQuery, []);
-        const insertQuery = 'INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)';
-        await runSql(pool, insertQuery, [
-          moment().format("YYYY-MM-DD"),
-          result.length - 1,
-          "FILE",
-          "/" + Paths.Paths.FILE + "/" + filename[filename.length - 1],
-          moment().format("YYYY-MM-DD HH:mm:ss"),
-          "FILE"
-        ]);
-        return callBack(null, { error_code: 0, message: result.length - 1 + ' records inserted successfully' });
-      } catch (error) {
-        return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
+  
+      if (uinInsertValues.length > 0) {
+        const uinInsertQuery = `INSERT INTO uin (uin, code_commune, niu_status) VALUES ${uinInsertValues.join(',')}`;
+  
+        try {
+          await runSql(pool, uinInsertQuery, []);
+  
+          const message = `${insertedCount} record(s) inserted successfully. ${declinedCount} duplicate record(s) declined.`;
+          return callBack(null, { error_code: 0, message: message });
+        } catch (error) {
+          return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
+        }
+      } else {
+        const message = `0 record(s) inserted. All records are duplicates.`;
+        return callBack(null, { error_code: 2, message: message });
       }
     } catch (error) {
       return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
@@ -1290,14 +1433,14 @@ module.exports = {
                       FROM uin 
                       INNER JOIN fokontany ON uin.code_commune = fokontany.code_commune
                       WHERE 1=1`;
-      let countQuery = "SELECT COUNT(*) AS total_count FROM uin INNER JOIN fokontany ON uin.code_commune = fokontany.code_commune WHERE 1=1";
+      let countQuery = "SELECT COUNT(*) AS total_count FROM uin WHERE 1=1";
       if (!isNullOrEmpty(search) && isNumeric(search)) {
         getQuery += ` AND (uin = ${search})`;
         countQuery += ` AND (uin = ${search})`;
       }
       if (!isNullOrEmpty(search)) {
         getQuery += ` AND (fokontany.libelle_commune LIKE '%${search}%')`;
-        countQuery += ` AND (fokontany.libelle_commune LIKE '%${search}%')`;
+        //countQuery += ` AND (fokontany.libelle_commune LIKE '%${search}%')`;
       }
 
       if (!isNullOrEmpty(niuStatus)) {
@@ -1346,3 +1489,17 @@ module.exports = {
   },
 
 };
+
+
+async function getUINFromDatabase() {
+  try {
+    let query = 'SELECT uin FROM uin WHERE uin = $1';
+    let result = await runSql(pool, query, [uin]);
+    if (result.rows.length > 0) {
+      return result.rows[0].uin;
+    }
+    return null;
+  } catch (error) {
+    throw new Error('Error fetching UIN from the database');
+  }
+}

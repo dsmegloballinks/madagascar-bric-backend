@@ -19,7 +19,7 @@ module.exports = {
       const contactExistsResult = await pool.query(contactExistsQuery, [data.office_contact]);
 
       if (contactExistsResult.rows.length > 0) {
-        return callBack("Office contact already exists", null);
+        return callBack("Contact Number already exists", null);
       }
 
       // Check if office_email already exists
@@ -27,7 +27,7 @@ module.exports = {
       const emailExistsResult = await pool.query(emailExistsQuery, [data.office_email]);
 
       if (emailExistsResult.rows.length > 0) {
-        return callBack("Office email already exists", null);
+        return callBack("Email already exists", null);
       }
 
       const insertQuery = "INSERT INTO registrar_register(first_name, last_name, office_email, department_name, office_contact) VALUES ($1, $2, $3, $4, $5) RETURNING *";

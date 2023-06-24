@@ -21,6 +21,7 @@ const {
   createUin,
   getAllUins,
   forgetpassword,
+  getAllTracking,
 
 
 } = require("./civil_register.service");
@@ -30,7 +31,7 @@ var common = require("../../helper/common.js");
 const Paths = require('../../helper/constants/Paths');
 const { isNullOrEmpty } = require('../../helper/helperfunctions');
 const { measureMemory } = require("vm");
-
+const { getUINFromDatabase } = require("../civil_register/civil_register.service");
 module.exports = {
   /* The above code is defining a function called "signUp" that takes in a request and response object
   as parameters. It then extracts the request body and passes it to a function called "signUp"
@@ -55,7 +56,7 @@ module.exports = {
   request body. */
   updateUser: async (req, res) => {
     const { user_id, email, user_name, status } = req.body;
-  
+
     try {
       const updatedUser = await updateUser({ email, user_name, status }, user_id);
       const data = common.success(updatedUser, Messages.MSG_UPDATE_SUCCESS, ErrorCode.success);
@@ -76,7 +77,6 @@ module.exports = {
       }
     }
   },
-  
   /* The above code is defining an asynchronous function called `deleteUser` that handles a DELETE
   request to delete a user from a database. It first extracts the `user_id` from the request query
   parameters and checks if it exists. If it doesn't exist, it returns an error response. */
@@ -261,7 +261,39 @@ module.exports = {
       }
     });
   },
+  /* The above code is defining a function called `getAllTrack` that takes in a request and response
+  object as parameters. It sets default values for `page` and `limit` variables, and then checks if
+  these values are provided in the query parameters of the request and updates them accordingly. It
+  also retrieves other query parameters such as `s_start_date`, `s_end_date`, `search`, `niuStatus`,
+  and `error_id`. */
+  getAllTrack: (req, res) => {
+    let page = 1;
+    let limit = 10;
+    if (req.query.page) {
+      page = req.query.page;
+    }
+    if (req.query.limit) {
+      limit = req.query.limit;
+    }
+    const sDate = req.query.s_start_date;
+    const sEndDate = req.query.s_end_date;
+    const search = req.query.search;
+    const niuStatus = req.query.niuStatus;
+    const error_id = req.query.error_id;
 
+    getAllTracking(sDate, sEndDate, page, limit, search, niuStatus, error_id, (err, results) => {
+      if (err) {
+        const data = common.error(err, Messages.MSG_INVALID_DATA, ErrorCode.failed);
+        return res.json({ data });
+      } else if (results.results.length === 0) {
+        const data = common.error(Messages.MSG_NO_RECORD, ErrorCode.not_exist);
+        return res.json({ data });
+      } else {
+        const data = common.pagination(results.results, results.total_records, page, limit);
+        return res.json({ data });
+      }
+    });
+  },
   /* The above code is defining an asynchronous function called `updateController` that handles a POST
   request. It expects the request body to contain `cr_id` and `uin` properties. */
   updateController: async (req, res) => {
@@ -311,6 +343,12 @@ module.exports = {
         return res.json({ data });
       }
     });
+    /* The above code is a JavaScript function that retrieves tracking information from a database based
+    on certain search criteria such as date range, page number, limit, search keyword, NIU status, and
+    error ID. It uses SQL queries to join multiple tables and retrieve data related to civil register,
+    registration form, mother, father, declarant, and fokontany. It also retrieves attached documents
+    related to the civil register. The function returns the retrieved data as an array of objects
+    along with the total number of records that match the search criteria. */
   },
   /* The above code is a function called `convertFile` that receives a request and response object as
   parameters. It checks if the request object has a file parameter, and if not, it returns a 400
@@ -538,22 +576,33 @@ module.exports = {
       if (!req.file) {
         return res.status(400).json({ error_code: 1, message: 'Missing file parameter' });
       }
-  
+
       var path = require('path');
       let filePath = path.resolve(__dirname) + "/../../upload/" + Paths.Paths.CSV + "/" + req.file.filename;
+
       createUin(filePath, (error, result) => {
         if (error) {
-          if (error.message.includes('duplicate key value violates unique constraint "uin_uin_unique"')) {
-            return res.status(400).json({ error_code: 2, message: 'Duplicate file entry' });
+          if (error.message === 'Error reading file for data gathering' || error.message === 'Invalid file type') {
+            return res.status(400).json({ error_code: 1, message: error.message });
+          } else if (error.message === 'File path is missing') {
+            return res.status(400).json({ error_code: 1, message: 'Missing file path' });
+          } else {
+            return res.status(500).json({ error_code: 1, message: error.message });
           }
-          return res.status(500).json({ error_code: 1, message: error.message });
         }
-        return res.status(200).json(result);
+
+        if (result.error_code === 0) {
+          return res.status(200).json({ error_code: 0, message: result.message });
+        } else if (result.error_code === 2) {
+          return res.status(400).json({ error_code: 2, message: result.message });
+        } else {
+          return res.status(500).json({ error_code: 1, message: result.message });
+        }
       });
     } catch (error) {
       return res.status(500).json({ error_code: 1, message: error.message });
     }
-  },  
+  },
   /* The above code is a controller function in a Node.js application that handles a GET request to
   retrieve a list of UINs (Unique Identification Numbers) based on certain query parameters such as
   page, limit, niu_status, and commune. The function calls the getAllUins function with the provided
@@ -603,8 +652,13 @@ module.exports = {
       return res.json({ data });
     }
   },
-
-
+  /* The above code is defining an asynchronous controller function for handling forget password
+  requests. It takes in a request object and a response object as parameters. It extracts the 'id'
+  parameter from the request query. It then calls a 'forgetpassword' function with the parsed 'id'
+  parameter and a callback function that handles the response from the 'forgetpassword' function. If
+  the 'forgetpassword' function returns a successful result, the controller function returns a JSON
+  response with a success message and the result. If there is an error, the controller function
+  returns a JSON response with an error message and an error code */
   forgetpasswordController: async (req, res) => {
     const { id } = req.query;
 

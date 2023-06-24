@@ -325,7 +325,8 @@ module.exports = {
   stringToDate,
   formatDate,
   getLastDates,
-  isNumeric
+  isNumeric,
+  
 }
 /**
  * The function converts a number to a two-digit string by adding leading zeros.

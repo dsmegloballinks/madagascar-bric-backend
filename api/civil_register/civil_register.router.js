@@ -22,10 +22,12 @@ const {
   createUinController,
   getAllUinController,
   forgetpasswordController,
+  getAllTrack,
 } = require("./civil_register.controller");
 const Paths = require("../../helper/constants/Paths");
 
 const multer = require("multer");
+const { getAllTracking } = require("./civil_register.service");
 /////
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -51,6 +53,7 @@ router.get("/get-commune", getCommune);
 router.get("/dashboard", Dashboard);
 router.get("/get-seven-day-graph", getSevenDayGraph);
 router.get("/get-all", getAll);
+router.get("/get-all-tracking", getAllTrack);
 router.post("/create", create);
 router.patch("/update", updateController);
 router.post("/delete", deleteById);
