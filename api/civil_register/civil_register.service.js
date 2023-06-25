@@ -1334,10 +1334,10 @@ module.exports = {
       if (!data) {
         throw new Error('File path is missing');
       }
-  
+
       const extension = data.split('.').pop();
       let result = [];
-  
+
       try {
         if (extension === 'xls' || extension === 'xlsx') {
           const workbook = xlsx.readFile(data);
@@ -1348,7 +1348,7 @@ module.exports = {
           result = await new Promise((resolve, reject) => {
             const stream = fs.createReadStream(data);
             const csvData = [];
-  
+
             stream
               .pipe(fastcsv.parse())
               .on('data', (rowData) => {
@@ -1367,11 +1367,11 @@ module.exports = {
       } catch (error) {
         throw new Error('Error reading file for data gathering');
       }
-  
+
       const uinInsertValues = [];
       let insertedCount = 0;
       let declinedCount = 0;
-  
+
       try {
         for (let i = 1; i < result.length; i++) {
           if (isNullOrEmpty(result[i][0])) {
@@ -1380,12 +1380,12 @@ module.exports = {
           if (isNullOrEmpty(result[i][1])) {
             result[i][1] = null;
           }
-  
+
           const uin = result[i][0];
-  
+
           const checkQuery = `SELECT COUNT(*) FROM uin WHERE uin = '${uin}'`;
           const checkQueryResult = await runSql(pool, checkQuery, []);
-  
+
           if (checkQueryResult.rows[0].count > 0) {
             // Duplicate UIN, increment declined count
             declinedCount++;
@@ -1401,13 +1401,24 @@ module.exports = {
       } catch (error) {
         return callBack({ error_code: 1, message: isNullOrEmpty(error.message) ? error : error.message }, null);
       }
-  
+
       if (uinInsertValues.length > 0) {
         const uinInsertQuery = `INSERT INTO uin (uin, code_commune, niu_status) VALUES ${uinInsertValues.join(',')}`;
-  
+
         try {
           await runSql(pool, uinInsertQuery, []);
-  
+
+          const filename = data.split("/");
+          const insertQuery = 'INSERT INTO excel_upload_log (date_created, number_record, input_type, file, time_created, module_type) VALUES ($1, $2, $3, $4, $5, $6)';
+          await runSql(pool, insertQuery, [
+            moment().format("YYYY-MM-DD"),
+            insertedCount,
+            "FILE",
+            "/" + Paths.Paths.FILE + "/" + filename[filename.length - 1],
+            moment().format("YYYY-MM-DD HH:mm:ss"),
+            "FILE"
+          ]);
+
           const message = `${insertedCount} record(s) inserted successfully. ${declinedCount} duplicate record(s) declined.`;
           return callBack(null, { error_code: 0, message: message });
         } catch (error) {
@@ -1429,38 +1440,51 @@ module.exports = {
   getAllUins: async (niuStatus, commune, page, limit, search, callBack) => {
     try {
       const offset = (page - 1) * limit;
-      let getQuery = `SELECT uin.*, fokontany.libelle_commune AS allocated_commune
-                      FROM uin 
-                      INNER JOIN fokontany ON uin.code_commune = fokontany.code_commune
-                      WHERE 1=1`;
+      let getQuery = `SELECT * FROM uin WHERE 1=1`;
       let countQuery = "SELECT COUNT(*) AS total_count FROM uin WHERE 1=1";
+
       if (!isNullOrEmpty(search) && isNumeric(search)) {
-        getQuery += ` AND (uin = ${search})`;
-        countQuery += ` AND (uin = ${search})`;
-      }
-      if (!isNullOrEmpty(search)) {
-        getQuery += ` AND (fokontany.libelle_commune LIKE '%${search}%')`;
-        //countQuery += ` AND (fokontany.libelle_commune LIKE '%${search}%')`;
+        getQuery += ` AND uin = ${search}`;
+        countQuery += ` AND uin = ${search}`;
+      } else if (!isNullOrEmpty(search)) {
+        getQuery += ` AND 1=1`;
+        //countQuery += ` AND 1=1`;
       }
 
       if (!isNullOrEmpty(niuStatus)) {
-        getQuery += ` AND uin.niu_status = '${niuStatus}'`;
-        countQuery += ` AND uin.niu_status = '${niuStatus}'`;
+        getQuery += ` AND niu_status = '${niuStatus}'`;
+        countQuery += ` AND niu_status = '${niuStatus}'`;
       }
 
       if (!isNullOrEmpty(commune)) {
-        getQuery += ` AND uin.code_commune = '${commune}'`;
-        countQuery += ` AND uin.code_commune = '${commune}'`;
+        getQuery += ` AND code_commune = '${commune}'`;
+        countQuery += ` AND code_commune = '${commune}'`;
       }
 
-      getQuery += ` LIMIT ${limit} OFFSET ${offset}`;
+      getQuery += ` LIMIT ${limit} OFFSET ${offset} `;
 
+      console.log("getQuery :", getQuery);
 
-
-      var getResult = await runSql(pool, getQuery, []);
+      let getResult = await runSql(pool, getQuery, []);
       let countResult = await runSql(pool, countQuery, []);
 
       const totalRecords = countResult.rows[0].total_count;
+
+      // Retrieve allocated_commune for each UIN from fokontany table
+      let uinList = getResult.rows.map(row => row.code_commune);
+      let allocatedCommuneQuery = `SELECT code_commune, libelle_commune AS allocated_commune FROM fokontany WHERE code_commune IN (${uinList.join(',')})`;
+      let allocatedCommuneResult = await runSql(pool, allocatedCommuneQuery, []);
+
+      // Map allocated_commune values to UINs
+      let uinAllocatedCommuneMap = {};
+      allocatedCommuneResult.rows.forEach(row => {
+        uinAllocatedCommuneMap[row.code_commune] = row.allocated_commune;
+      });
+
+      // Assign allocated_commune for each UIN
+      getResult.rows.forEach(row => {
+        row.allocated_commune = uinAllocatedCommuneMap[row.code_commune];
+      });
 
       return callBack(null, getResult.rows, totalRecords);
     } catch (error) {

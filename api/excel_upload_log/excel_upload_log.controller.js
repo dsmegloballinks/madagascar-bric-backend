@@ -79,8 +79,12 @@ module.exports = {
       search = req.query.search;
     }
 
+    if (req.query.moduleType) {
+      moduleType = req.query.moduleType;
+    }
+
     try {
-      getAllLogs(page, limit, search, (error, result) => {
+      getAllLogs(page, limit, search, moduleType, (error, result) => {
         if (error) {
           const data = common.error(error.message, Messages.MSG_INVALID_DATA, ErrorCode.failed);
           return res.json(data);

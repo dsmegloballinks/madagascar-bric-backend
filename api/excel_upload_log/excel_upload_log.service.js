@@ -114,7 +114,7 @@ module.exports = {
   },
   /* `getAllLogs` is a function that retrieves data from the `excel_upload_log` table in the database.
   It takes in four parameters: `page`, `limit`, `moduleType`, and `file`. */
-  getAllLogs: async (page, limit, search, callBack) => {
+  getAllLogs: async (page, limit, search, moduleType, callBack) => {
     try {
       const offset = (page - 1) * limit;
       let countQuery = 'SELECT COUNT(*) AS total_count FROM excel_upload_log WHERE 1=1';
@@ -135,7 +135,25 @@ module.exports = {
         };
 
         return callBack(null, data);
-      } else {
+      }
+      
+      if (moduleType) {
+        const searchPattern = `%${moduleType}%`;
+        countQuery += ` AND (module_type LIKE $1)`;
+        selectQuery += ` AND (module_type LIKE $1)`;
+        const countResult = await runSql(pool, countQuery, [searchPattern]);
+        const selectResult = await runSql(pool, selectQuery + ' ORDER BY id DESC LIMIT $2 OFFSET $3', [searchPattern, limit, offset]);
+
+        const data = {
+          total_count: countResult.rows[0].total_count,
+          page_number: page,
+          page_size: limit,
+          data: selectResult.rows,
+        };
+
+        return callBack(null, data);
+      }
+      else {
         const countResult = await runSql(pool, countQuery);
         const selectResult = await runSql(pool, selectQuery + ' ORDER BY id DESC LIMIT $1 OFFSET $2', [limit, offset]);
 
