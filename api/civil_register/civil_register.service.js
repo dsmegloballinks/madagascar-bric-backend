@@ -585,6 +585,7 @@ module.exports = {
           } catch (error) {
             reject("error file reading file for data gathering ")
           }
+          
 
           var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, error_id, error_date) VALUES";
           for (let i = 1; i < result.length; i++) {
