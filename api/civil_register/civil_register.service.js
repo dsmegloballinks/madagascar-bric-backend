@@ -10,7 +10,7 @@ const { formatDate } = require("../../helper/helperfunctions");
 const { getLastDates } = require("../../helper/helperfunctions");
 const { convertDateToStringMoment } = require("../../helper/helperfunctions");
 const { getCenterDateMoment } = require("../../helper/helperfunctions");
-const moment = require("moment/moment");
+const moment = require("moment");
 const axios = require('axios');
 // const {getUINFromDatabase} = require('../civil_register/civil_register.service')
 
@@ -585,39 +585,43 @@ module.exports = {
           } catch (error) {
             reject("error file reading file for data gathering ")
           }
-          
 
-          var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_residence_same, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, error_id, error_date) VALUES";
+
+          var queryCivilRegisterInsert = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, time_of_birth, place_of_birth, gender, is_parents_married, is_birth_in_hc, is_assisted_by_how, hc_name, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, is_alive, family_book_record, child_birth_info, error_id, error_date) VALUES";
           for (let i = 1; i < result.length; i++) {
-            if (isNullOrEmpty(result[i][69])) { result[i][69] = null; } //info_enfant-niu
-            if (isNullOrEmpty(result[i][10])) { result[i][10] = null; } //info_enfant-prenom_enfant
-            if (isNullOrEmpty(result[i][9])) { result[i][9] = null; } //info_enfant-nom_enfant
-            if (isNullOrEmpty(result[i][11])) { result[i][11] = null; } result[i][11] = formatDate(result[i][11]);//info_enfant-date_naissance
-            if (isNullOrEmpty(result[i][12])) { result[i][12] = null; } //info_enfant-heure_naissance
-            if (isNullOrEmpty(result[i][16])) { result[i][16] = null; } //info_enfant-b_location
-            if (isNullOrEmpty(result[i][13])) { result[i][13] = null; } //info_enfant-sexe_enfant
-            if (isNullOrEmpty(result[i][14])) { result[i][14] = null; } //info_enfant-parent_marie
-            if (isNullOrEmpty(result[i][15])) { result[i][15] = null; } //info_enfant-meme_residence
-            if (result[i][17] === null || result[i][17].length === 0) {
-              result[i][17] = 0;
+            if (isNullOrEmpty(result[i][9])) { result[i][9] = null; } //info_enfant-niu
+            if (isNullOrEmpty(result[i][10])) { result[i][10] = null; } //info_enfant-nom_enfant
+            if (isNullOrEmpty(result[i][11])) { result[i][11] = null; } //info_enfant-prenom_enfant
+            if (isNullOrEmpty(result[i][12])) { result[i][12] = null; } result[i][12] = result[i][12] != null && result[i][12] != undefined ? formatDate(result[i][12]) : NULL; //info_enfant-date_naissance
+            if (isNullOrEmpty(result[i][13])) { result[i][13] = null; } //info_enfant-heure_naissance
+            if (isNullOrEmpty(result[i][18])) { result[i][18] = null; } //info_enfant-b_location
+            if (isNullOrEmpty(result[i][14])) { result[i][14] = null; } //info_enfant-sexe_enfant
+            if (isNullOrEmpty(result[i][16])) { result[i][16] = null; } //info_enfant-parent_marie
+            // if (isNullOrEmpty(result[i][15])) { result[i][15] = null; } //info_enfant-meme_residence
+            if (result[i][19] === null || result[i][19].length === 0) {
+              result[i][19] = 0;
             } else {
-              result[i][17] = 1;
+              result[i][19] = 1;
             } //info_enfant-name_health_center queery to ber change to save yes or no
-            if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_enfant-b_location
-            if (isNullOrEmpty(result[i][17])) { result[i][17] = null; } //info_enfant-name_health_center
-            if (isNullOrEmpty(result[i][18])) { result[i][18] = null; } //info_enfant-name_domicile
-            if (isNullOrEmpty(result[i][25])) { result[i][25] = null; } //info_enfant-region_naissance mothers
-            if (isNullOrEmpty(result[i][26])) { result[i][26] = null; } //info_enfant-district_naissance mothers
-            if (isNullOrEmpty(result[i][27])) { result[i][27] = null; } //info_enfant-commune_naissance mothers
-            if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_enfant-fokontany mothers
+            if (isNullOrEmpty(result[i][18])) { result[i][18] = null; } //info_enfant-b_location
+            if (isNullOrEmpty(result[i][19])) { result[i][19] = null; } //info_enfant-name_health_center
+            if (isNullOrEmpty(result[i][20])) { result[i][20] = null; } //info_enfant-name_domicile
+            if (isNullOrEmpty(result[i][29])) { result[i][29] = null; } //info_enfant-region_naissance mothers_r
+            if (isNullOrEmpty(result[i][30])) { result[i][30] = null; } //info_enfant-district_naissance mothers_r
+            if (isNullOrEmpty(result[i][31])) { result[i][31] = null; } //info_enfant-commune_naissance mothers_r
+            if (isNullOrEmpty(result[i][32])) { result[i][32] = null; } //info_enfant-fokontany mothers_r
+            if (isNullOrEmpty(result[i][15])) { result[i][15] = null; } //info_enfant-naissance_vivante
+            if (isNullOrEmpty(result[i][17])) { result[i][17] = null; } //info_enfant-livret_famille
+            if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_enfant-naissance_as
+
 
             let error_id = 0;
             if (result[i][32].length == 10) {
               // var uinQuery = "SELECT * FROM uin where code_commune = " + result[i][40];
-              var uinQuery = "SELECT * FROM uin where uin = " + result[i][69];
+              var uinQuery = "SELECT * FROM uin where uin = " + result[i][9];
               var uinResult = await runSql(pool, uinQuery, []);
               if (uinResult.rows.length > 0) {
-                if (uinResult.rows[0].code_commune == result[i][27]) {
+                if (uinResult.rows[0].code_commune == result[i][39]) {
                   if (uinResult.rows[0].niu_status == 0) {
                     const currentDate = new Date();
                     const formattedTime = currentDate.toLocaleString('en-US', { hour12: false });
@@ -642,35 +646,47 @@ module.exports = {
 
             let error_date = formatDate(new Date());
 
-            queryCivilRegisterInsert += `('${result[i][69]}', '${result[i][10]}', '${result[i][9]}', '${result[i][11]}', '${result[i][12]}', '${result[i][16]}', '${result[i][13]}', '${result[i][14]}', '${result[i][15]}', '${result[i][17]}', '${result[i][21]}', '${result[i][17]}', '${result[i][18]}', '${result[i][25]}', '${result[i][26]}', '${result[i][27]}', '${result[i][28]}','${error_id}','${error_date}'),`;
+            queryCivilRegisterInsert += `('${result[i][9]}', '${result[i][10]}', '${result[i][11]}', '${result[i][12]}', '${result[i][13]}', '${result[i][18]}', '${result[i][14]}', '${result[i][16]}', '${result[i][19]}', '${result[i][18]}', '${result[i][19]}', '${result[i][20]}', '${result[i][29]}', '${result[i][30]}', '${result[i][31]}', '${result[i][32]}', '${result[i][15]}', '${result[i][17]}', '${result[i][21]}','${error_id}','${error_date}'),`;
           }
           queryCivilRegisterInsert = removeCommaAtEnd(queryCivilRegisterInsert);
           queryCivilRegisterInsert += " RETURNING id, uin";
+          console.log("queryCivilRegisterInsert", queryCivilRegisterInsert)
           resultCivilRegisterInsert = await runSql(pool, queryCivilRegisterInsert, []);
 
 
-          var queryCivilRegisterInsertFather = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession, is_residence_same, error_id, error_date) VALUES";
+          var queryCivilRegisterInsertFather = "INSERT INTO civil_register (father_info_available, uin, cin_id, given_name, last_name, date_of_birth, cin_photo, cin_photo_back, region_of_birth_r, district_of_birth_r, commune_of_birth_r, fokontany_of_birth_r, fokontany_other_r, residence_address, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, fokontany_other, cr_profession, is_residence_same, error_id, error_date) VALUES";
           // ######## FOR FATHER ######## \\
           let duplicateFatherResult = [];
           for (let i = 1; i < result.length; i++) {
-            if (isNullOrEmpty(result[i][32])) { result[i][32] = null; } //info_pere-niu_pere
-            if (isNullOrEmpty(result[i][34])) { result[i][34] = null; } //info_pere-prenom_pere
-            if (isNullOrEmpty(result[i][33])) { result[i][33] = null; } //info_pere-nom_pere 
-            if (isNullOrEmpty(result[i][35])) { result[i][35] = null; } result[i][35] = formatDate(result[i][35]); //info_pere-date_naissance_pere
-            if (isNullOrEmpty(result[i][38])) { result[i][38] = null; } //info_pere-info_pere_2-region_pere
-            if (isNullOrEmpty(result[i][39])) { result[i][39] = null; } //info_pere-info_pere_2-district_pere
-            if (isNullOrEmpty(result[i][40])) { result[i][40] = null; } //info_pere-info_pere_2-commune_pere
-            if (isNullOrEmpty(result[i][41])) { result[i][41] = null; } //info_pere-info_pere_2-fokontany_pere
-            if (isNullOrEmpty(result[i][42])) { result[i][42] = null; } //info_pere-profession_pere
-            if (isNullOrEmpty(result[i][36])) { result[i][36] = null; } //info_pere-mother_father_same_address
+            if (isNullOrEmpty(result[i][43])) { result[i][43] = null; } //info_pere-niu_pere
+            if (isNullOrEmpty(result[i][44])) { result[i][44] = null; } //info_pere-niu_pere
+            if (isNullOrEmpty(result[i][45])) { result[i][45] = null; } //info_pere-id_pere
+            if (isNullOrEmpty(result[i][46])) { result[i][46] = null; } //info_pere-nom_pere 
+            if (isNullOrEmpty(result[i][47])) { result[i][47] = null; } //info_pere-prenom_pere
+            if (isNullOrEmpty(result[i][48])) { result[i][48] = null; } result[i][48] = formatDate(result[i][48]); //info_pere-date_naissance_pere
+            if (isNullOrEmpty(result[i][49])) { result[i][49] = null; } //info_pere-photo_cin_pere_recto
+            if (isNullOrEmpty(result[i][50])) { result[i][50] = null; } //info_pere-photo_cin_pere_verso
+            if (isNullOrEmpty(result[i][52])) { result[i][52] = null; } //info_pere-residence_pere-region_pere_r
+            if (isNullOrEmpty(result[i][53])) { result[i][53] = null; } //info_pere-residence_pere-district_pere_r
+            if (isNullOrEmpty(result[i][54])) { result[i][54] = null; } //info_pere-residence_pere-commune_pere_r
+            if (isNullOrEmpty(result[i][55])) { result[i][55] = null; } //info_pere-residence_pere-fokontany_pere_r
+            if (isNullOrEmpty(result[i][56])) { result[i][56] = null; } //info_pere-residence_pere-fokontany_pere_r_other
+            if (isNullOrEmpty(result[i][57])) { result[i][57] = null; } //info_pere-residence_pere-adresse_pere
+            if (isNullOrEmpty(result[i][59])) { result[i][59] = null; } //info_pere-info_pere_2-region_pere
+            if (isNullOrEmpty(result[i][60])) { result[i][60] = null; } //info_pere-info_pere_2-district_pere
+            if (isNullOrEmpty(result[i][61])) { result[i][61] = null; } //info_pere-info_pere_2-commune_pere
+            if (isNullOrEmpty(result[i][62])) { result[i][62] = null; } //info_pere-info_pere_2-fokontany_pere
+            if (isNullOrEmpty(result[i][63])) { result[i][63] = null; } //info_pere-info_pere_2-fokontany_pere_other
+            if (isNullOrEmpty(result[i][64])) { result[i][64] = null; } //info_pere-profession_pere
+            if (isNullOrEmpty(result[i][51])) { result[i][51] = null; } //info_pere-mother_father_same_address
 
 
             let error_id = 0;
-            if (result[i][32].length == 10) {
-              var uinQuery = "SELECT * FROM uin where uin = " + result[i][32];
+            if (result[i][44].length == 10) {
+              var uinQuery = "SELECT * FROM uin where uin = " + result[i][44];
               var uinResult = await runSql(pool, uinQuery, []);
               if (uinResult.rows.length > 0) {
-                if (uinResult.rows[0].code_commune == result[i][40]) {
+                if (uinResult.rows[0].code_commune == result[i][61]) {
                   if (uinResult.rows[0].niu_status == 0)
                     error_id = 0;
                   else {
@@ -692,7 +708,7 @@ module.exports = {
 
             let error_date = formatDate(new Date());
             if (error_id != 1)
-              queryCivilRegisterInsertFather += `(${result[i][32]},'${result[i][34]}','${result[i][33]}','${result[i][35]}','${result[i][38]}','${result[i][39]}','${result[i][40]}','${result[i][41]}','${result[i][42]}','${result[i][36]}','${error_id}','${error_date}'),`;
+              queryCivilRegisterInsertFather += `(${result[i][43]},'${result[i][44]}','${result[i][45]}','${result[i][46]}','${result[i][47]}','${result[i][48]}','${result[i][49]}','${result[i][50]}','${result[i][52]}','${result[i][53]}','${result[i][54]}','${result[i][55]}','${result[i][56]}','${result[i][57]}','${result[i][59]}','${result[i][60]}','${result[i][61]}','${result[i][62]}','${result[i][63]}','${result[i][64]}','${result[i][51]}','${error_id}','${error_date}'),`;
           }
           queryCivilRegisterInsertFather = removeCommaAtEnd(queryCivilRegisterInsertFather);
           queryCivilRegisterInsertFather += " RETURNING id, uin";
@@ -703,25 +719,36 @@ module.exports = {
           // ######## FOR MOTHER ######## \\
           let duplicateMotherResult = [];
 
-          var queryCivilRegisterInsertMother = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, nationality_name, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, cr_profession, error_id, error_date) VALUES";
+          var queryCivilRegisterInsertMother = "INSERT INTO civil_register (uin, cin_id, given_name, last_name, date_of_birth, cin_photo, cin_photo_back, nationality_name, other_nationality, region_of_birth, district_of_birth, commune_of_birth, fokontany_of_birth, fokontany_other, cr_profession, region_of_birth_r, district_of_birth_r, commune_of_birth_r, fokontany_of_birth_r, fokontany_other_r, residence_address, error_id, error_date) VALUES";
           for (let i = 1; i < result.length; i++) {
-            if (isNullOrEmpty(result[i][20])) { result[i][20] = null; } // info_mere-niu_mere
-            if (isNullOrEmpty(result[i][22])) { result[i][22] = null; } //info_mere-prenom_mere
-            if (isNullOrEmpty(result[i][21])) { result[i][21] = null; } //info_mere-nom_mere
-            if (isNullOrEmpty(result[i][23])) { result[i][23] = null; } result[i][23] = formatDate(result[i][23]); //info_mere-date_naissance_mere
-            if (isNullOrEmpty(result[i][31])) { result[i][31] = null; } //info_mere-nationalite_mere
-            if (isNullOrEmpty(result[i][25])) { result[i][25] = null; } //info_mere-region_mere
-            if (isNullOrEmpty(result[i][26])) { result[i][26] = null; } //info_mere-district_mere
-            if (isNullOrEmpty(result[i][27])) { result[i][27] = null; } //info_mere-commune_mere
-            if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_mere-fokontany_mere
-            if (isNullOrEmpty(result[i][29])) { result[i][29] = null; } //info_mere-profession_mere
+            if (isNullOrEmpty(result[i][22])) { result[i][22] = null; } // info_mere-niu_mere
+            if (isNullOrEmpty(result[i][23])) { result[i][23] = null; } // info_mere-id_mere
+            if (isNullOrEmpty(result[i][24])) { result[i][24] = null; } //info_mere-nom_mere
+            if (isNullOrEmpty(result[i][25])) { result[i][25] = null; } //info_mere-prenom_mere
+            if (isNullOrEmpty(result[i][26])) { result[i][26] = null; } result[i][26] = formatDate(result[i][26]); //info_mere-date_naissance_mere
+            if (isNullOrEmpty(result[i][27])) { result[i][27] = null; } //info_mere-photo_cin_mere_recto
+            if (isNullOrEmpty(result[i][28])) { result[i][28] = null; } //info_mere-photo_cin_mere_verso
+            if (isNullOrEmpty(result[i][35])) { result[i][35] = null; } //info_mere-nationalite_mere
+            if (isNullOrEmpty(result[i][36])) { result[i][36] = null; } //info_mere-nationalite_mere_autre
+            if (isNullOrEmpty(result[i][29])) { result[i][29] = null; } //info_mere-region_mere
+            if (isNullOrEmpty(result[i][30])) { result[i][30] = null; } //info_mere-district_mere
+            if (isNullOrEmpty(result[i][31])) { result[i][31] = null; } //info_mere-commune_mere
+            if (isNullOrEmpty(result[i][32])) { result[i][32] = null; } //info_mere-fokontany_mere
+            if (isNullOrEmpty(result[i][33])) { result[i][33] = null; } //info_mere-ldn_mere-fokontany_mere_other
+            if (isNullOrEmpty(result[i][34])) { result[i][34] = null; } //info_mere-profession_mere
+            if (isNullOrEmpty(result[i][37])) { result[i][37] = null; } //info_mere-residence_mere-region_mere_r
+            if (isNullOrEmpty(result[i][38])) { result[i][38] = null; } //info_mere-residence_mere-district_mere_r
+            if (isNullOrEmpty(result[i][39])) { result[i][39] = null; } //info_mere-residence_mere-commune_mere_r
+            if (isNullOrEmpty(result[i][40])) { result[i][40] = null; } //info_mere-residence_mere-fokontany_mere_r
+            if (isNullOrEmpty(result[i][41])) { result[i][41] = null; } //info_mere-residence_mere-fokontany_mere_r_other
+            if (isNullOrEmpty(result[i][42])) { result[i][42] = null; } //info_mere-residence_mere-adresse_mere
 
             let error_id = 0;
-            if (result[i][32].length == 10) {
-              var uinQuery = "SELECT * FROM uin where uin = " + result[i][27];
+            if (result[i][22].length == 10) {
+              var uinQuery = "SELECT * FROM uin where uin = " + result[i][31];
               var uinResult = await runSql(pool, uinQuery, []);
               if (uinResult.rows.length > 0) {
-                if (uinResult.rows[0].code_commune == result[i][20]) {
+                if (uinResult.rows[0].code_commune == result[i][22]) {
                   if (uinResult.rows[0].niu_status == 0)
                     error_id = 0;
                   else {
@@ -745,7 +772,7 @@ module.exports = {
             let error_date = formatDate(new Date());
             if (error_id != 1)
 
-              queryCivilRegisterInsertMother += `('${result[i][20]}', '${result[i][22]}', '${result[i][21]}', '${result[i][23]}', '${result[i][31]}', '${result[i][25]}', '${result[i][26]}', '${result[i][27]}',  '${result[i][28]}', '${result[i][29]}','${error_id}','${error_date}'),`;
+              queryCivilRegisterInsertMother += `('${result[i][22]}', '${result[i][23]}', '${result[i][24]}', '${result[i][25]}', '${result[i][26]}', '${result[i][27]}', '${result[i][28]}', '${result[i][35]}',  '${result[i][36]}', '${result[i][29]}','${result[i][30]}','${result[i][31]}','${result[i][32]}','${result[i][33]}','${result[i][34]}','${result[i][37]}','${result[i][38]}','${result[i][39]}','${result[i][40]}','${result[i][41]}','${result[i][42]}','${error_id}','${error_date}'),`;
           }
           queryCivilRegisterInsertMother = removeCommaAtEnd(queryCivilRegisterInsertMother);
           queryCivilRegisterInsertMother += " RETURNING id, uin";
@@ -756,15 +783,18 @@ module.exports = {
 
 
           // ######## FOR DECLARANT ######## \\
-          var queryCivilRegisterInsertDeclarant = "INSERT INTO civil_register (uin, given_name, last_name, date_of_birth, region_of_birth, commune_of_birth) VALUES";
+          var queryCivilRegisterInsertDeclarant = "INSERT INTO civil_register (uin, cin_id, given_name, last_name, date_of_birth, region_of_birth, declarant_phone) VALUES";
           for (let i = 1; i < result.length; i++) {
-            if (isNullOrEmpty(result[i][44])) { result[i][44] = null; } // info_declarant-info_declarant_2-niu_declarant
-            if (isNullOrEmpty(result[i][46])) { result[i][46] = null; } // info_declarant-info_declarant_2-prenom_declarant
-            if (isNullOrEmpty(result[i][45])) { result[i][45] = null; } // info_declarant-info_declarant_2-nom_declarant
-            if (isNullOrEmpty(result[i][47])) { result[i][47] = null; } result[i][47] = formatDate(result[i][47]); //info_declarant-info_declarant_2-date_naissance_declarant
-            if (isNullOrEmpty(result[i][48])) { result[i][48] = null; } // info_declarant-info_declarant_2-address_declarant
+            if (isNullOrEmpty(result[i][66])) { result[i][66] = null; } // info_declarant-info_declarant_2-niu_declarant
+            if (isNullOrEmpty(result[i][67])) { result[i][67] = null; } // info_declarant-info_declarant_2-id_declarant
+            if (isNullOrEmpty(result[i][68])) { result[i][68] = null; } // info_declarant-info_declarant_2-nom_declarant
+            if (isNullOrEmpty(result[i][69])) { result[i][69] = null; } // info_declarant-info_declarant_2-prenom_declarant
+            if (isNullOrEmpty(result[i][70])) { result[i][70] = null; } result[i][70] = formatDate(result[i][70]); //info_declarant-info_declarant_2-date_naissance_declarant
+            if (isNullOrEmpty(result[i][71])) { result[i][71] = null; } // info_declarant-info_declarant_2-address_declarant
+            if (isNullOrEmpty(result[i][72])) { result[i][72] = null; } // info_declarant-info_declarant_2-phone_declarant
 
-            queryCivilRegisterInsertDeclarant += `('${result[i][44]}', '${result[i][46]}', '${result[i][45]}', '${result[i][47]}', '${result[i][48]}','${result[i][70]}'),`;
+
+            queryCivilRegisterInsertDeclarant += `('${result[i][66]}', '${result[i][67]}', '${result[i][68]}', '${result[i][69]}', '${result[i][70]}','${result[i][71]}' ,'${result[i][72]}'),`;
           }
           queryCivilRegisterInsertDeclarant = removeCommaAtEnd(queryCivilRegisterInsertDeclarant);
           queryCivilRegisterInsertDeclarant += " RETURNING id, uin";
@@ -777,27 +807,27 @@ module.exports = {
           var delarantsInfo = resultCivilRegisterInsertDeclarant.rows;
 
           var resultCopy = result.splice(1, result.length - 1);
-          var queryRegistrationFormInsert = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, in_charge_sign, lattitude, longitude ) VALUES";
+          var queryRegistrationFormInsert = "INSERT INTO registration_form (child_cr_id, father_cr_id, mother_cr_id, declarant_cr_id, dec_relation, dec_date, transcription_date, lattitude, longitude) VALUES";
           for (let i = 0; i < childsInfo.length; i++) {
             const childInfo = childsInfo[i];
-            let indexChildFileData = resultCopy.findIndex(element => element[69] == childInfo.uin);
+            let indexChildFileData = resultCopy.findIndex(element => element[9] == childInfo.uin);
             if (indexChildFileData > -1) {
-              var indexFather = fathersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][32]);
-              var indexMother = mothersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][20]);
-              var indexDeclarant = delarantsInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][44]);
+              var indexFather = fathersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][44]);
+              var indexMother = mothersInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][22]);
+              var indexDeclarant = delarantsInfo.findIndex(element => element.uin == resultCopy[indexChildFileData][66]);
               if (indexFather > -1)
                 var fatherId = fathersInfo[indexFather].id;
               var motherId = mothersInfo[indexMother].id;
-              var lattitude = resultCopy[indexChildFileData][54];
-              var longitude = resultCopy[indexChildFileData][55];
+              var lattitude = resultCopy[indexChildFileData][85];
+              var longitude = resultCopy[indexChildFileData][86];
               var declarantId = delarantsInfo[indexDeclarant].id;
 
 
-              //index 43 = info_declarant-lien_declarant
+              //index 65 = info_declarant-lien_declarant
               //index 7 = gr_info-date_declaration
               //index 8 = gr_info-date_transcription
-              //index 53 = lieu_signature
-              queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId},'${resultCopy[indexChildFileData][43]}','${formatDate(resultCopy[indexChildFileData][7])}','${formatDate(resultCopy[indexChildFileData][8])}','${resultCopy[indexChildFileData][50]}','${lattitude}','${longitude}'),`
+              //index 53 = lieu_signature (not present in new file)
+              queryRegistrationFormInsert += `(${childInfo.id},${fatherId},${motherId},${declarantId}, '${resultCopy[indexChildFileData][65]}', '${formatDate(resultCopy[indexChildFileData][7])}','${formatDate(resultCopy[indexChildFileData][8])}','${lattitude}','${longitude}'),`
             }
           }
           queryRegistrationFormInsert = removeCommaAtEnd(queryRegistrationFormInsert);
